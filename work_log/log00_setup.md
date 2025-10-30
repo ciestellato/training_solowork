@@ -275,6 +275,8 @@ Table ManualEntry {
 
 ## Djangoアプリ開発開始
 
+### 下準備
+
 仮想環境を作成
 
 ```
@@ -289,6 +291,8 @@ pip install --upgrade pip
 pip install django
 ```
 
+### プロジェクト作成開始
+
 Djangoプロジェクトを作成
 
 ```
@@ -302,3 +306,193 @@ python manage.py runserver
 ```
 python manage.py startapp festival
 ```
+
+models.py にエンティティを定義する
+
+```
+from django.db import models
+
+class Event(models.Model):
+    name = models.CharField(max_length=255)
+    location = models.CharField(max_length=255)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
+class Artist(models.Model):
+    name = models.CharField(max_length=255)
+    popularity = models.IntegerField(null=True, blank=True)
+    genres = models.CharField(max_length=255, blank=True)
+    spotify_id = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+class Performance(models.Model):
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    artist = models.ForeignKey(Artist, on_delete=models.CASCADE)
+    performance_date = models.DateField()
+    is_confirmed = models.BooleanField(default=False)
+
+class RelatedArtist(models.Model):
+    artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='base_artist')
+    related_artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='similar_to')
+    similarity_score = models.FloatField()
+
+class ManualEntry(models.Model):
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    artist = models.ForeignKey(Artist, on_delete=models.CASCADE)
+    notes = models.TextField(blank=True)
+```
+
+モデル設計のポイント
+- 外部キー：ForeignKey を使ってリレーションを表現
+- 自己参照：RelatedArtist で Artist を2回参照（related_name を使って区別）
+- 文字列表示：__str__() を定義して管理画面で見やすく
+- バリデーション：blank=True や null=True で柔軟性を確保
+
+モデルを登録(setting.py)
+
+```
+INSTALLED_APPS = [
+    # 作成したアプリ
+    'festival',
+    
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+]
+```
+
+モデルの変更をマイグレーションに変換
+
+```
+python manage.py makemigrations
+```
+
+DBに反映
+
+```
+python manage.py migrate
+```
+
+### admin.pyにモデルを登録
+
+スーパーユーザーを設定する
+
+```python
+python manage.py createsuperuser
+```
+
+言語・タイムゾーンの設定
+
+```python
+# conf\settings.py
+LANGUAGE_CODE = 'ja'
+
+TIME_ZONE = 'Asia/Tokyo'
+```
+
+管理サイトにモデルを登録する
+
+```python
+# admin.py
+from django.contrib import admin
+
+from .models import Artist, Event, ManualEntry, Performance, RelatedArtist
+
+# Register your models here.
+admin.site.register(Artist)
+admin.site.register(Event)
+admin.site.register(ManualEntry)
+admin.site.register(Performance)
+admin.site.register(RelatedArtist)
+```
+
+管理画面からダミーデータを登録
+
+管理画面のカスタマイズ
+
+> Djangoの管理画面（admin site）のカスタマイズは、admin.py にクラスを定義して登録することで、表示項目や検索機能、フィルターなどを追加できます。
+
+---
+
+### 🛠️ 管理画面カスタマイズの基本
+
+#### 1. モデルをカスタムクラスで登録する
+
+たとえば `Artist` モデルをカスタマイズするには、`festival/admin.py` に以下のように書きます：
+
+```python
+from django.contrib import admin
+from .models import Artist
+
+@admin.register(Artist)
+class ArtistAdmin(admin.ModelAdmin):
+    list_display = ('name', 'popularity', 'spotify_id')  # 一覧に表示する項目
+    search_fields = ('name', 'genres')                   # 検索ボックスで検索可能な項目
+    list_filter = ('popularity',)                        # サイドバーにフィルターを追加
+```
+
+---
+
+#### 2. 他のモデルも同様に登録
+
+```python
+from .models import Event, Performance, RelatedArtist, ManualEntry
+
+@admin.register(Event)
+class EventAdmin(admin.ModelAdmin):
+    list_display = ('name', 'location', 'start_date', 'end_date')
+    search_fields = ('name', 'location')
+    list_filter = ('start_date',)
+
+@admin.register(Performance)
+class PerformanceAdmin(admin.ModelAdmin):
+    list_display = ('event', 'artist', 'performance_date', 'is_confirmed')
+    list_filter = ('is_confirmed', 'performance_date')
+    search_fields = ('event__name', 'artist__name')
+
+@admin.register(RelatedArtist)
+class RelatedArtistAdmin(admin.ModelAdmin):
+    list_display = ('artist', 'related_artist', 'similarity_score')
+    search_fields = ('artist__name', 'related_artist__name')
+
+@admin.register(ManualEntry)
+class ManualEntryAdmin(admin.ModelAdmin):
+    list_display = ('event', 'artist', 'notes')
+    search_fields = ('event__name', 'artist__name', 'notes')
+```
+
+---
+
+#### 3. 管理画面での表示確認
+
+ローカルサーバーを起動して、管理画面にアクセス：
+
+```bash
+python manage.py runserver
+```
+
+ブラウザで `http://127.0.0.1:8000/admin/` にアクセスし、ログイン後にカスタマイズされた一覧表示や検索機能が反映されているか確認できます。
+
+---
+
+#### ✅ よく使うオプション一覧
+
+| オプション         | 説明 |
+|------------------|------|
+| `list_display`   | 一覧ページに表示するフィールド |
+| `search_fields`  | 検索ボックスで検索可能なフィールド |
+| `list_filter`    | サイドバーに表示されるフィルター |
+| `ordering`       | デフォルトの並び順 |
+| `readonly_fields`| 編集不可にするフィールド |
+
+---
+
