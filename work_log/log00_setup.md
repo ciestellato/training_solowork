@@ -496,3 +496,50 @@ python manage.py runserver
 
 ---
 
+## Spotify API連携
+
+### ✅ 安全なトークン管理の方法
+
+#### 1. `.env` ファイルに保存する（推奨）
+
+プロジェクトルートに `.env` ファイルを作成し、以下のように記述します：
+
+```env
+SPOTIFY_CLIENT_ID=your_client_id_here
+SPOTIFY_CLIENT_SECRET=your_client_secret_here
+```
+
+#### 2. `.gitignore` に `.env` を追加
+
+```gitignore
+# Pythonキャッシュファイル
+*.py[cod]
+__pycache__/
+
+# 仮想環境
+venv/
+
+# DBファイル
+db.sqlite3
+
+# 環境変数
+.env
+```
+
+これで `.env` ファイルは Git に含まれなくなります。
+
+#### 3. Pythonから読み込む（例：`python-dotenv` を使用）
+
+```bash
+pip install python-dotenv
+```
+
+```python
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+client_id = os.getenv("SPOTIFY_CLIENT_ID")
+client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
+```

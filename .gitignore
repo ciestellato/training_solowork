@@ -1,0 +1,12 @@
+# Pythonキャッシュファイル
+*.py[cod]
+__pycache__/
+
+# 仮想環境
+venv/
+
+# DBファイル
+db.sqlite3
+
+# 環境変数
+.env
