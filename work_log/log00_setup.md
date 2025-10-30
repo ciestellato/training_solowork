@@ -275,4 +275,30 @@ Table ManualEntry {
 
 ## Djangoアプリ開発開始
 
+仮想環境を作成
 
+```
+python -m venv venv
+venv\Scripts\activate
+```
+
+Djangoインストール
+
+```
+pip install --upgrade pip
+pip install django
+```
+
+Djangoプロジェクトを作成
+
+```
+django-admin startproject conf .
+python manage.py migrate
+python manage.py runserver
+```
+
+アプリケーションの作成
+
+```
+python manage.py startapp festival
+```
