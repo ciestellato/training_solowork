@@ -561,3 +561,26 @@ venv/ の方で実行エラーが出たが、中身を確認したところ空�
 git commit -m "Remove sensitive files from Git tracking"
 git push
 ```
+
+### Spotify APIの認証（Client Credentials Flow）
+
+必要な準備
+- Spotify Developer Dashboard でアプリを作成
+- Client ID と Client Secret を取得
+- .env に保存
+
+[Spotify Developer Dashboard](https://developer.spotify.com/)
+
+入力項目
+
+- App name
+- App description
+- Redirect URIs
+
+開発中ダミーURL
+
+https://example.com/callback/
+
+Which API/SDKs are you planning to use?
+
+WebAPIに✅
