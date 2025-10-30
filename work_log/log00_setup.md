@@ -543,3 +543,21 @@ load_dotenv()
 client_id = os.getenv("SPOTIFY_CLIENT_ID")
 client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
 ```
+
+#### 履歴管理から除外
+
+Gitのキャッシュから除外
+
+```
+git rm --cached db.sqlite3
+git rm --cached -r venv/
+```
+
+venv/ の方で実行エラーが出たが、中身を確認したところ空っぽだったため履歴を追跡していなかった。
+
+コミットして履歴を更新
+
+```
+git commit -m "Remove sensitive files from Git tracking"
+git push
+```
