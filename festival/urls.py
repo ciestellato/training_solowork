@@ -11,6 +11,8 @@ urlpatterns = [
     path('artists/', views.artist_list, name='artist_list'),
     # アーティスト詳細
     path('artist/<int:pk>/', views.artist_detail, name='artist_detail'),
+    # アーティスト一括登録
+    path('artists/bulk/', views.bulk_artist_register, name='bulk_artist_register'),
 
     # イベント一覧
     path('events/', views.event_list, name='event_list'),

@@ -34,3 +34,28 @@ def event_detail(request, pk):
         'event': event,
         'performances': performances
     })
+
+def bulk_artist_register(request):
+    """アーティストの一括登録処理"""
+    from .forms import BulkArtistForm
+    from .spotify import save_artist_from_spotify  # Spotify API連携関数
+
+    message = ''
+    if request.method == 'POST':
+        form = BulkArtistForm(request.POST)
+        if form.is_valid():
+            raw_names = form.cleaned_data['names']
+            name_list = [name.strip() for name in raw_names.split(',') if name.strip()]
+            created = 0
+            skipped = 0
+            for name in name_list:
+                if Artist.objects.filter(name__iexact=name).exists():
+                    skipped += 1
+                    continue
+                result = save_artist_from_spotify(name)
+                if result:
+                    created += 1
+            message = f"{created} 件登録、{skipped} 件スキップしました。"
+    else:
+        form = BulkArtistForm()
+    return render(request, 'bulk_artist_register.html', {'form': form, 'message': message})
