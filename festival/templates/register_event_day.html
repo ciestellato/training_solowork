@@ -14,10 +14,42 @@
 
     <form method="post">
         {% csrf_token %}
-        {{ form.as_p }}
+        <input type="hidden" name="event" value="{{ selected_event_id }}">
+        {{ form.date }}
+        {{ form.venue }}
+        {{ form.artists }}
         <button type="submit" class="btn btn-primary">登録する</button>
+
     </form>
 
     <a href="{% url 'festival:event_list' %}" class="btn btn-secondary mt-3">イベント一覧に戻る</a>
+
+<script type="text/javascript">
+    const eventData = JSON.parse('{{ event_data_json|escapejs }}' || '{}');
+    const selectedEventId = "{{ selected_event_id }}";
+
+    function updateDateOptions() {
+        const dateSelect = document.getElementById("id_date");
+        dateSelect.innerHTML = "";
+
+        if (eventData[selectedEventId]) {
+            const start = new Date(eventData[selectedEventId].start);
+            const end = new Date(eventData[selectedEventId].end);
+
+            for (let d = new Date(start); d.getTime() <= new Date(end).getTime(); d.setDate(d.getDate() + 1)) {
+                const dateStr = d.toISOString().split('T')[0];
+                const option = document.createElement("option");
+                option.value = dateStr;
+                option.text = dateStr;
+                dateSelect.appendChild(option);
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        updateDateOptions();
+        document.getElementById("id_event").disabled = true;  // イベント選択を固定
+    });
+</script>
 </body>
 </html>

@@ -12,7 +12,7 @@ class BulkArtistForm(forms.Form):
 class EventDayPerformanceForm(forms.Form):
     """イベント内容・出演者入力フォーム"""
     event = forms.ModelChoiceField(queryset=Event.objects.all(), label='イベント')
-    date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}), label='開催日')
+    date = forms.ChoiceField(choices=[], label='開催日')  # 選択肢はJSで動的に生成
     venue = forms.CharField(max_length=255, label='会場')
     artists = forms.ModelMultipleChoiceField(
         queryset=Artist.objects.all(),

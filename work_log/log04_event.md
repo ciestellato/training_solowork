@@ -322,3 +322,115 @@ def event_detail(request, pk):
 
 これで `Event` 詳細ページが正しく表示されるようになります！  
 さらに `related_name` を使えばコードがもっと読みやすくなります。必要ならそのリファクタリングもお手伝いしますよ。
+
+了解です！🎯  
+`EventDay` 登録フォームで「カレンダー入力」ではなく、**`Event` の `start_date`〜`end_date` の範囲から選択式（ドロップダウン）にする**方法をご紹介します。
+
+---
+
+## ✅ 修正ポイント
+
+- `Event` を選択したら、その日付範囲に応じて `date` フィールドの選択肢を生成
+- `start_date == end_date` の場合も1日だけ選択肢が出るようにする
+- JavaScriptで動的に日付選択肢を切り替える（Djangoフォームだけでは難しいため）
+
+---
+
+## 🧱 修正コードスニペット
+
+### 1. `forms.py`（日付は空の選択肢として定義）
+
+```python
+from django import forms
+from .models import Event, Artist
+
+class EventDayPerformanceForm(forms.Form):
+    event = forms.ModelChoiceField(queryset=Event.objects.all(), label='イベント')
+    date = forms.ChoiceField(choices=[], label='開催日')  # 選択肢はJSで動的に生成
+    venue = forms.CharField(max_length=255, label='会場')
+    artists = forms.ModelMultipleChoiceField(
+        queryset=Artist.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+        label='出演アーティスト'
+    )
+```
+
+---
+
+### 2. `views.py`（イベント一覧をJSONで渡す）
+
+```python
+from django.core.serializers.json import DjangoJSONEncoder
+import json
+
+def register_event_day_and_performances(request):
+    message = ''
+    events = Event.objects.all()
+    event_data = {
+        str(e.id): {
+            'start': e.start_date.strftime('%Y-%m-%d'),
+            'end': e.end_date.strftime('%Y-%m-%d')
+        } for e in events
+    }
+
+    if request.method == 'POST':
+        form = EventDayPerformanceForm(request.POST)
+        if form.is_valid():
+            ...
+    else:
+        form = EventDayPerformanceForm()
+
+    return render(request, 'register_event_day.html', {
+        'form': form,
+        'message': message,
+        'event_data_json': json.dumps(event_data, cls=DjangoJSONEncoder)
+    })
+```
+
+---
+
+### 3. `register_event_day.html`（JSで日付選択肢を生成）
+
+```html
+<script>
+    const eventData = {{ event_data_json|safe }};
+
+    function updateDateOptions() {
+        const eventSelect = document.getElementById("id_event");
+        const dateSelect = document.getElementById("id_date");
+        const selectedId = eventSelect.value;
+
+        dateSelect.innerHTML = "";  // 初期化
+
+        if (eventData[selectedId]) {
+            const start = new Date(eventData[selectedId].start);
+            const end = new Date(eventData[selectedId].end);
+
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const dateStr = d.toISOString().split('T')[0];
+                const option = document.createElement("option");
+                option.value = dateStr;
+                option.text = dateStr;
+                dateSelect.appendChild(option);
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        updateDateOptions();
+        document.getElementById("id_event").addEventListener("change", updateDateOptions);
+    });
+</script>
+```
+
+---
+
+## ✨ これでできること
+
+- イベント選択後に、開催期間内の日付だけが選択肢として表示される
+- 単日イベント（`start_date == end_date`）でも1日だけ選択肢が出る
+- カレンダー入力よりもミスが減り、登録がスムーズに！
+
+---
+
+～このあとなんやかんやした～

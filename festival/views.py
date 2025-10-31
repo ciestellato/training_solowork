@@ -1,5 +1,8 @@
 from django.shortcuts import render, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
+from django.core.serializers.json import DjangoJSONEncoder
+import json
+from datetime import timedelta
 
 from .models import Artist, Event, EventDay, Performance
 from .forms import EventDayPerformanceForm
@@ -44,6 +47,41 @@ def event_detail(request, pk):
         'day_performances': day_performances
     })
 
+def register_event_day_and_performances(request):
+    """イベント一覧をJSONで渡す"""
+    message = ''
+    events = Event.objects.all()
+    event_data = {
+        str(e.id): {
+            'start': e.start_date.strftime('%Y-%m-%d'),
+            'end': e.end_date.strftime('%Y-%m-%d')
+        } for e in events
+    }
+
+    if request.method == 'POST':
+        form = EventDayPerformanceForm(request.POST)
+        if form.is_valid():
+            event = form.cleaned_data['event']
+            date = form.cleaned_data['date']
+            venue = form.cleaned_data['venue']
+            artists = form.cleaned_data['artists']
+
+            event_day = EventDay.objects.create(event=event, date=date, venue=venue)
+
+            for artist in artists:
+                Performance.objects.create(event_day=event_day, artist=artist, is_confirmed=True)
+
+            message = f"{event_day} に {artists.count()} 組の出演者を登録しました。"
+            form = EventDayPerformanceForm()  # フォームをリセット
+    else:
+        form = EventDayPerformanceForm()
+
+    return render(request, 'register_event_day.html', {
+        'form': form,
+        'message': message,
+        'event_data_json': json.dumps(event_data, cls=DjangoJSONEncoder)
+    })
+
 def bulk_artist_register(request):
     """アーティストの一括登録処理"""
     from .forms import BulkArtistForm
@@ -73,24 +111,56 @@ def bulk_artist_register(request):
 def register_event_day_and_performances(request):
     """イベント日・会場・出演者登録"""
     message = ''
+    event_id = request.GET.get('event_id')
+    selected_event = get_object_or_404(Event, id=event_id) if event_id else None
+
+    # 日付選択肢を生成
+    date_choices = []
+    event_data = {}
+    if selected_event:
+        start = selected_event.start_date
+        end = selected_event.end_date
+        current = start
+        while current <= end:
+            date_str = current.strftime('%Y-%m-%d')
+            date_choices.append((date_str, date_str))
+            current += timedelta(days=1)
+
+        event_data[str(selected_event.id)] = {
+            'start': start.strftime('%Y-%m-%d'),
+            'end': end.strftime('%Y-%m-%d')
+        }
+
+    # フォーム生成（POSTかGETかで分岐）
     if request.method == 'POST':
-        form = EventDayPerformanceForm(request.POST)
-        if form.is_valid():
-            event = form.cleaned_data['event']
-            date = form.cleaned_data['date']
-            venue = form.cleaned_data['venue']
-            artists = form.cleaned_data['artists']
-
-            # EventDayを作成
-            event_day = EventDay.objects.create(event=event, date=date, venue=venue)
-
-            # Performanceを作成（重複チェックは任意）
-            for artist in artists:
-                Performance.objects.create(event_day=event_day, artist=artist, is_confirmed=True)
-
-            message = f"{event_day} に {artists.count()} 組の出演者を登録しました。"
-            form = EventDayPerformanceForm()  # フォームをリセット
+        post_data = request.POST.copy()
+        if selected_event:
+            post_data['event'] = selected_event.id  # hiddenで送ったeventを強制セット
+        form = EventDayPerformanceForm(post_data)
     else:
-        form = EventDayPerformanceForm()
+        form = EventDayPerformanceForm(initial={'event': selected_event})
 
-    return render(request, 'register_event_day.html', {'form': form, 'message': message})
+    # 日付選択肢をフォームに設定
+    form.fields['date'].choices = date_choices
+
+    # 登録処理
+    if request.method == 'POST' and form.is_valid():
+        event = form.cleaned_data['event']
+        date = form.cleaned_data['date']
+        venue = form.cleaned_data['venue']
+        artists = form.cleaned_data['artists']
+
+        event_day = EventDay.objects.create(event=event, date=date, venue=venue)
+        for artist in artists:
+            Performance.objects.create(event_day=event_day, artist=artist, is_confirmed=True)
+
+        message = f"{event_day} に {artists.count()} 組の出演者を登録しました。"
+        form = EventDayPerformanceForm(initial={'event': selected_event})
+        form.fields['date'].choices = date_choices  # 再設定
+
+    return render(request, 'register_event_day.html', {
+        'form': form,
+        'message': message,
+        'event_data_json': json.dumps(event_data, cls=DjangoJSONEncoder),
+        'selected_event_id': selected_event.id if selected_event else ''
+    })

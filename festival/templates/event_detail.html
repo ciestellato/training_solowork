@@ -38,6 +38,7 @@
     {% empty %}
         <p>日程が登録されていません。</p>
     {% endfor %}
+    <a href="{% url 'festival:register_event_day' %}?event_id={{ event.id }}" class="btn btn-secondary">このイベントに出演者を登録</a> 
     <a href="{% url 'festival:event_list' %}" class="btn btn-secondary">イベント一覧に戻る</a>
 </body>
 </html>
