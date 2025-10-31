@@ -7,6 +7,16 @@
 </head>
 <body class="container mt-4">
     <h1>🎤 出演アーティスト一覧</h1>
+
+    <!-- 検索フォーム -->
+    <form method="get" class="mb-3">
+        <div class="input-group">
+            <input type="text" name="q" class="form-control" placeholder="アーティスト名で検索" value="{{ query|default_if_none:'' }}">
+            <button type="submit" class="btn btn-primary">検索</button>
+        </div>
+    </form>
+
+    <!-- 一覧表示 -->
     <table class="table table-striped">
         <thead>
             <tr>
@@ -26,11 +36,12 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="4">登録されたアーティストがまだありません。</td>
+                <td colspan="4">該当するアーティストが見つかりませんでした。</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+
     <a href="{% url 'festival:index' %}" class="btn btn-secondary">トップへ戻る</a>
 </body>
 </html>

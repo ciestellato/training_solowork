@@ -9,5 +9,9 @@ def index(request):
 
 def artist_list(request):
     """アーティストの一覧表示ページ"""
-    artists = Artist.objects.all().order_by('name')  # 名前順で取得
-    return render(request, 'artist_list.html', {'artists': artists})
+    query = request.GET.get('q')  # 検索語を取得
+    if query:
+        artists = Artist.objects.filter(name__icontains=query).order_by('name')
+    else:
+        artists = Artist.objects.all().order_by('name')
+    return render(request, 'artist_list.html', {'artists': artists, 'query': query})

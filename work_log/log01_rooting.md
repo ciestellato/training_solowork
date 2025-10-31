@@ -289,3 +289,112 @@ def search_artist(name):
 - 検索機能（`GET` パラメータで名前フィルター）
 - 詳細ページ（`artist/<int:pk>/`）
 - 類似アーティスト表示（`RelatedArtist` モデルとの連携）
+
+---
+
+アーティスト一覧ページに「名前で検索できる機能」を追加していきましょう🔍  
+Djangoの `GET` パラメータを使って、シンプルで使いやすい検索フォームを実装します。
+
+---
+
+## 🧭 今回の目標
+
+- アーティスト一覧ページに検索フォームを追加
+- 名前に部分一致するアーティストだけを表示
+- 検索語を保持したまま表示
+
+---
+
+## 🔧 1. `views.py` の修正
+
+```python
+# festival/views.py
+
+from django.shortcuts import render
+from .models import Artist
+
+def artist_list(request):
+    query = request.GET.get('q')  # 検索語を取得
+    if query:
+        artists = Artist.objects.filter(name__icontains=query).order_by('name')
+    else:
+        artists = Artist.objects.all().order_by('name')
+    return render(request, 'artist_list.html', {'artists': artists, 'query': query})
+```
+
+---
+
+## 🖼️ 2. `artist_list.html` に検索フォームを追加
+
+```html
+<!-- festival/templates/artist_list.html -->
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>出演アーティスト一覧</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container mt-4">
+    <h1>🎤 出演アーティスト一覧</h1>
+
+    <!-- 検索フォーム -->
+    <form method="get" class="mb-3">
+        <div class="input-group">
+            <input type="text" name="q" class="form-control" placeholder="アーティスト名で検索" value="{{ query }}">
+            <button type="submit" class="btn btn-primary">検索</button>
+        </div>
+    </form>
+
+    <!-- 一覧表示 -->
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>名前</th>
+                <th>Spotify ID</th>
+                <th>ジャンル</th>
+                <th>人気度</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for artist in artists %}
+            <tr>
+                <td>{{ artist.name }}</td>
+                <td>{{ artist.spotify_id }}</td>
+                <td>{{ artist.genres|join:", " }}</td>
+                <td>{{ artist.popularity }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4">該当するアーティストが見つかりませんでした。</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{% url 'index' %}" class="btn btn-secondary">トップへ戻る</a>
+</body>
+</html>
+```
+
+---
+
+## ✅ 3. 動作確認
+
+- `/artists/` にアクセスして一覧が表示されるか確認
+- 検索フォームに「YOASOBI」などを入力して、部分一致で絞り込みされるか確認
+- 検索語がフォームに残っているか確認
+
+---
+
+## ✨ 拡張アイデア
+
+- ジャンルや人気度でも絞り込み（複数条件検索）
+- 検索結果の件数表示
+- 検索語のハイライト表示（`{{ artist.name|highlight:query }}` のようなカスタムフィルター）
+
+---
+
+この検索機能で、管理画面を使わずにアーティストを探せるようになります！  
+次は詳細ページや類似アーティスト表示に進めてもいいですし、検索条件の拡張もできます。どうしましょう？
