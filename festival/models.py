@@ -1,12 +1,21 @@
 from django.db import models
 
 class Event(models.Model):
+    """イベント全体のクラス"""
+    EVENT_TYPE_CHOICES = [
+        ('FES', 'フェス'),
+        ('TOUR', 'ツアー'),
+        ('SOLO', '単独公演'),
+        ('BATTLE', '対バン'),
+        ('OTHER', 'その他'),
+    ]
+
     name = models.CharField(max_length=255)
-    location = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
     start_date = models.DateField()
     end_date = models.DateField()
-    description = models.TextField(blank=True)
-
+    event_type = models.CharField(max_length=10, choices=EVENT_TYPE_CHOICES)
+    
     def __str__(self):
         return self.name
 
@@ -19,11 +28,23 @@ class Artist(models.Model):
     def __str__(self):
         return self.name
 
-class Performance(models.Model):
+class EventDay(models.Model):
+    """公演日・会場単位のクラス"""
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    date = models.DateField()
+    venue = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"{self.event.name} - {self.date} @ {self.venue}"
+
+class Performance(models.Model):
+    """出演情報クラス"""
+    event_day = models.ForeignKey(EventDay, on_delete=models.CASCADE)
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE)
-    performance_date = models.DateField()
     is_confirmed = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.artist.name} @ {self.event_day}"
 
 class RelatedArtist(models.Model):
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='base_artist')
