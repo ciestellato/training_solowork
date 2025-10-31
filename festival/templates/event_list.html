@@ -13,7 +13,8 @@
     {% for event in events %}
     <div class="card mb-4">
         <div class="card-header">
-            <strong>{{ event.name }}</strong>（{{ event.start_date }}〜{{ event.end_date }} / {{ event.location }}）
+            <strong><a href="{% url 'festival:event_detail' event.pk %}">{{ event.name }}</a></strong>
+            （{{ event.start_date }}〜{{ event.end_date }} / {{ event.location }}）
         </div>
         <div class="card-body">
             <p>{{ event.description|linebreaks }}</p>

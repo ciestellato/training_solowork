@@ -14,4 +14,6 @@ urlpatterns = [
 
     # イベント一覧
     path('events/', views.event_list, name='event_list'),
+    # イベント詳細
+    path('event/<int:pk>/', views.event_detail, name='event_detail'),
 ]

@@ -25,3 +25,12 @@ def event_list(request):
     """イベントの一覧表示ページ"""
     events = Event.objects.all().order_by('start_date')
     return render(request, 'event_list.html', {'events': events})
+
+def event_detail(request, pk):
+    """イベント詳細ページ"""
+    event = get_object_or_404(Event, pk=pk)
+    performances = event.performance_set.select_related('artist').order_by('performance_date')
+    return render(request, 'event_detail.html', {
+        'event': event,
+        'performances': performances
+    })
