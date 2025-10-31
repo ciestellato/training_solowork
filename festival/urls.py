@@ -4,6 +4,11 @@ from . import views
 app_name = 'festival'
 
 urlpatterns = [
-    path('', views.index, name='index'),  # トップページ
-    path('artists/', views.artist_list, name='artist_list'),  # アーティスト一覧
+    # トップページ
+    path('', views.index, name='index'),
+
+    # アーティスト一覧
+    path('artists/', views.artist_list, name='artist_list'),
+    # アーティスト詳細
+    path('artist/<int:pk>/', views.artist_detail, name='artist_detail'), 
 ]

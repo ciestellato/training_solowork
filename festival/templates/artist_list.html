@@ -29,7 +29,7 @@
         <tbody>
             {% for artist in artists %}
             <tr>
-                <td>{{ artist.name }}</td>
+                <td><a href="{% url 'festival:artist_detail' artist.pk %}">{{ artist.name }}</a></td>
                 <td>{{ artist.spotify_id }}</td>
                 <td>{{ artist.genres|join:", " }}</td>
                 <td>{{ artist.popularity }}</td>

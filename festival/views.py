@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 
 from .models import Artist
 
@@ -15,3 +15,8 @@ def artist_list(request):
     else:
         artists = Artist.objects.all().order_by('name')
     return render(request, 'artist_list.html', {'artists': artists, 'query': query})
+
+def artist_detail(request, pk):
+    """アーティストの詳細ページ"""
+    artist = get_object_or_404(Artist, pk=pk)
+    return render(request, 'artist_detail.html', {'artist': artist})
