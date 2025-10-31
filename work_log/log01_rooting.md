@@ -396,5 +396,102 @@ def artist_list(request):
 
 ---
 
-この検索機能で、管理画面を使わずにアーティストを探せるようになります！  
-次は詳細ページや類似アーティスト表示に進めてもいいですし、検索条件の拡張もできます。どうしましょう？
+では、アーティストの詳細ページを作成して、個別の情報（名前・ジャンル・人気度など）を表示できるようにしましょう。
+
+---
+
+## 🧭 今回の目標
+
+- 詳細ページへのルーティング追加（`artist/<int:pk>/`）
+- `DetailView` または関数ベースビューで個別表示
+- テンプレートで情報を整えて表示
+
+---
+
+## 🔧 1. `urls.py` に詳細ページルートを追加
+
+```python
+# festival/urls.py
+
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('', views.index, name='index'),
+    path('artists/', views.artist_list, name='artist_list'),
+    path('artist/<int:pk>/', views.artist_detail, name='artist_detail'),  # ← 追加
+]
+```
+
+---
+
+## 🧱 2. `views.py` に詳細ビューを追加
+
+```python
+# festival/views.py
+
+from django.shortcuts import render, get_object_or_404
+from .models import Artist
+
+def artist_detail(request, pk):
+    artist = get_object_or_404(Artist, pk=pk)
+    return render(request, 'artist_detail.html', {'artist': artist})
+```
+
+---
+
+## 🖼️ 3. `artist_detail.html` を作成
+
+```html
+<!-- festival/templates/artist_detail.html -->
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ artist.name }} の詳細</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container mt-4">
+    <h1>{{ artist.name }} の詳細</h1>
+
+    <ul class="list-group mb-3">
+        <li class="list-group-item"><strong>Spotify ID:</strong> {{ artist.spotify_id }}</li>
+        <li class="list-group-item"><strong>ジャンル:</strong> {{ artist.genres|join:", " }}</li>
+        <li class="list-group-item"><strong>人気度:</strong> {{ artist.popularity }}</li>
+    </ul>
+
+    <a href="{% url 'artist_list' %}" class="btn btn-secondary">一覧に戻る</a>
+</body>
+</html>
+```
+
+---
+
+## 🧩 4. 一覧ページからリンクを追加（任意）
+
+```html
+<!-- artist_list.html の名前列をリンクに変更 -->
+
+<td>
+    <a href="{% url 'artist_detail' artist.pk %}">{{ artist.name }}</a>
+</td>
+```
+
+---
+
+## ✅ 5. 動作確認
+
+- `/artist/1/` のようなURLで詳細ページが表示されるか確認
+- 一覧ページからリンクで遷移できるか確認
+- ジャンルが正しく表示されるか確認
+
+---
+
+## ✨ 拡張アイデア
+
+- Spotifyのアーティストページへのリンク追加（`https://open.spotify.com/artist/{{ artist.spotify_id }}`）
+- 類似アーティストの表示（`RelatedArtist` モデルと連携）
+- プレイリストや出演履歴の表示
+
+---

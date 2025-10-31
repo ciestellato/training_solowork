@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 
-from .models import Artist
+from .models import Artist, Event, Performance
 
 # Create your views here.
 def index(request):
@@ -20,3 +20,8 @@ def artist_detail(request, pk):
     """アーティストの詳細ページ"""
     artist = get_object_or_404(Artist, pk=pk)
     return render(request, 'artist_detail.html', {'artist': artist})
+
+def event_list(request):
+    """イベントの一覧表示ページ"""
+    events = Event.objects.all().order_by('start_date')
+    return render(request, 'event_list.html', {'events': events})
