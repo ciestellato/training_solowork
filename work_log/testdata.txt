@@ -1,0 +1,6 @@
+python manage.py shell
+
+from festival.spotify import save_artist_from_spotify
+artist = save_artist_from_spotify("YOASOBI")
+save_artist_from_spotify("King Gnu")
+save_artist_from_spotify("Aimer")

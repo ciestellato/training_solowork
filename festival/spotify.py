@@ -35,7 +35,7 @@ def search_artist(name):
             'name': artist['name'],
             'spotify_id': artist['id'],
             'popularity': artist['popularity'],
-            'genres': ', '.join(artist['genres'])
+            'genres': artist['genres']
         }
     return None
 

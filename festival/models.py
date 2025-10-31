@@ -13,7 +13,7 @@ class Event(models.Model):
 class Artist(models.Model):
     name = models.CharField(max_length=255)
     popularity = models.IntegerField(null=True, blank=True)
-    genres = models.CharField(max_length=255, blank=True)
+    genres = models.JSONField(default=list, blank=True)
     spotify_id = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
