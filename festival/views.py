@@ -1,6 +1,8 @@
 from django.shortcuts import render, get_object_or_404
+from django.contrib.admin.views.decorators import staff_member_required
 
-from .models import Artist, Event, Performance
+from .models import Artist, Event, EventDay, Performance
+from .forms import EventDayPerformanceForm
 
 # Create your views here.
 def index(request):
@@ -29,10 +31,17 @@ def event_list(request):
 def event_detail(request, pk):
     """イベント詳細ページ"""
     event = get_object_or_404(Event, pk=pk)
-    performances = event.performance_set.select_related('artist').order_by('performance_date')
+    event_days = event.eventday_set.all().order_by('date')  # EventDayを取得
+
+    # 各 EventDay に紐づく Performance をまとめる
+    day_performances = []
+    for day in event_days:
+        performances = day.performance_set.select_related('artist').order_by('artist__name')
+        day_performances.append((day, performances))
+
     return render(request, 'event_detail.html', {
         'event': event,
-        'performances': performances
+        'day_performances': day_performances
     })
 
 def bulk_artist_register(request):
@@ -59,3 +68,29 @@ def bulk_artist_register(request):
     else:
         form = BulkArtistForm()
     return render(request, 'bulk_artist_register.html', {'form': form, 'message': message})
+
+@staff_member_required
+def register_event_day_and_performances(request):
+    """イベント日・会場・出演者登録"""
+    message = ''
+    if request.method == 'POST':
+        form = EventDayPerformanceForm(request.POST)
+        if form.is_valid():
+            event = form.cleaned_data['event']
+            date = form.cleaned_data['date']
+            venue = form.cleaned_data['venue']
+            artists = form.cleaned_data['artists']
+
+            # EventDayを作成
+            event_day = EventDay.objects.create(event=event, date=date, venue=venue)
+
+            # Performanceを作成（重複チェックは任意）
+            for artist in artists:
+                Performance.objects.create(event_day=event_day, artist=artist, is_confirmed=True)
+
+            message = f"{event_day} に {artists.count()} 組の出演者を登録しました。"
+            form = EventDayPerformanceForm()  # フォームをリセット
+    else:
+        form = EventDayPerformanceForm()
+
+    return render(request, 'register_event_day.html', {'form': form, 'message': message})

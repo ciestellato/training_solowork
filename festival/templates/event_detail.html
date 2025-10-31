@@ -16,24 +16,28 @@
         <p><strong>説明:</strong><br>{{ event.description|linebreaks }}</p>
     </div>
 
-    <h4>出演者一覧</h4>
-    <ul class="list-group mb-4">
-        {% for perf in performances %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-                {{ perf.performance_date }}：<a href="{% url 'festival:artist_detail' perf.artist.pk %}">{{ perf.artist.name }}</a>
-            </div>
-            {% if perf.is_confirmed %}
-                <span class="badge bg-success">確定</span>
-            {% else %}
-                <span class="badge bg-warning text-dark">未確定</span>
-            {% endif %}
-        </li>
-        {% empty %}
-        <li class="list-group-item text-muted">出演者未登録</li>
-        {% endfor %}
-    </ul>
-
+    <h4>開催日程と出演者</h4>
+    {% for day, performances in day_performances %}
+        <h5>{{ day.date }} @ {{ day.venue }}</h5>
+        <ul class="list-group mb-3">
+            {% for perf in performances %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <a href="{% url 'festival:artist_detail' perf.artist.pk %}">{{ perf.artist.name }}</a>
+                </div>
+                {% if perf.is_confirmed %}
+                    <span class="badge bg-success">確定</span>
+                {% else %}
+                    <span class="badge bg-warning text-dark">未確定</span>
+                {% endif %}
+            </li>
+            {% empty %}
+            <li class="list-group-item text-muted">出演者未登録</li>
+            {% endfor %}
+        </ul>
+    {% empty %}
+        <p>日程が登録されていません。</p>
+    {% endfor %}
     <a href="{% url 'festival:event_list' %}" class="btn btn-secondary">イベント一覧に戻る</a>
 </body>
 </html>
