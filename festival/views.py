@@ -7,6 +7,8 @@ from datetime import timedelta
 from .models import Artist, Event, EventDay, Performance
 from .forms import EventDayPerformanceForm
 
+from .spotify import save_artist_from_spotify  # Spotify API連携関数
+
 # Create your views here.
 def index(request):
     """ホームページ"""
@@ -47,7 +49,7 @@ def event_detail(request, pk):
         'day_performances': day_performances
     })
 
-def register_event_day_and_performances(request):
+def get_event_schedule_json(request):
     """イベント一覧をJSONで渡す"""
     message = ''
     events = Event.objects.all()
@@ -85,7 +87,6 @@ def register_event_day_and_performances(request):
 def bulk_artist_register(request):
     """アーティストの一括登録処理"""
     from .forms import BulkArtistForm
-    from .spotify import save_artist_from_spotify  # Spotify API連携関数
 
     message = ''
     if request.method == 'POST':

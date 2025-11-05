@@ -651,5 +651,160 @@ pytest festival/tests/test_views.py
 
 ---
 
-これで主要なビューの表示確認とデータの反映がテストできます。  
-次は `bulk_artist_register` や `register_event_day_and_performances` のPOST処理を含むテストにも進めますが、まずここまでのテストを実行してみましょうか？それともPOST処理のテストにも進みますか？
+ビューのGET系テストが整ったので、次は**POST処理を含むビューのテスト**に進みましょう。特に以下の2つがおすすめです：
+
+---
+
+## 🧪 1. `bulk_artist_register` のPOSTテスト
+
+このビューでは、フォーム送信によってSpotify API連携でアーティストを登録します。テストではSpotify連携をモック化して、登録処理の流れを確認します。
+
+### ✅ テスト例（`test_views.py`）
+
+```python
+import pytest
+from django.urls import reverse
+from unittest.mock import patch
+from festival.models import Artist
+
+@patch("festival.views.save_artist_from_spotify")
+@pytest.mark.django_db
+def test_bulk_artist_register_post(mock_save, client):
+    def mock_save_artist(name):
+        return Artist.objects.create(name=name, spotify_id="64tJ2EAv1R6UaZqc4iOCyj")
+
+    mock_save.side_effect = mock_save_artist
+
+    url = reverse("festival:bulk_artist_register")
+    data = {"names": "YOASOBI"}
+    response = client.post(url, data)
+
+    print(response.content.decode())  # デバッグ用
+
+    assert response.status_code == 200
+    assert Artist.objects.filter(name="YOASOBI").exists()
+    assert "1 件登録" in response.content.decode()
+```
+
+---
+
+## 🧪 2. `register_event_day_and_performances` のPOSTテスト
+
+このビューでは、イベント日・会場・出演者を登録します。日付選択肢はJSで生成されるため、テストでは手動で設定します。
+
+### ✅ テスト例（`test_views.py`）
+
+```python
+from festival.models import Event, Artist
+
+@pytest.mark.django_db
+def test_register_event_day_post(client):
+    event = Event.objects.create(
+        name="Test Fest",
+        description="テスト",
+        start_date="2025-12-01",
+        end_date="2025-12-01",
+        event_type="FES"
+    )
+    artist = Artist.objects.create(name="Aimer", spotify_id="def456")
+
+    url = reverse("festival:register_event_day")
+    data = {
+        "event": event.id,
+        "date": "2025-12-01",
+        "venue": "幕張メッセ",
+        "artists": [artist.id],
+    }
+
+    # 日付選択肢をフォームに設定するためにGETで一度取得
+    client.get(url + f"?event_id={event.id}")
+
+    response = client.post(url + f"?event_id={event.id}", data)
+    assert response.status_code == 200
+    assert "1 組の出演者を登録しました" in response.content.decode()
+```
+
+---
+
+## ✅ テスト実行
+
+```bash
+pytest festival/tests/test_views.py
+```
+
+---
+
+テストカバレッジを確認するには、Python のテストツール **pytest** と一緒に **coverage.py** を使うのが一般的です。以下の手順で確認できます：
+
+---
+
+## ✅ テストカバレッジ確認手順
+
+### 1. 📦 coverage パッケージをインストール
+
+まだインストールしていない場合は、以下のコマンドでインストールします：
+
+```bash
+pip install coverage
+```
+
+---
+
+### 2. 🧪 coverage を使ってテストを実行
+
+プロジェクトのルートディレクトリで以下を実行します：
+
+```bash
+coverage run -m pytest
+```
+
+これで、通常の `pytest` 実行と同時にカバレッジ情報が収集されます。
+
+---
+
+### 3. 📊 カバレッジレポートを表示
+
+ターミナル上で簡易レポートを表示するには：
+
+```bash
+coverage report
+```
+
+より詳細な HTML レポートを生成するには：
+
+```bash
+coverage html
+```
+
+その後、`htmlcov/index.html` をブラウザで開くと、**ファイルごとのカバレッジ状況が色付きで確認できます**。
+
+---
+
+## 🛠 よく使うオプション
+
+| コマンド | 説明 |
+|----------|------|
+| `coverage erase` | 以前のカバレッジデータを削除 |
+| `coverage run -m pytest` | カバレッジを計測しながらテスト実行 |
+| `coverage report -m` | 行ごとのカバレッジを表示（未実行の行も） |
+| `coverage html` | HTMLレポートを生成（`htmlcov/` に出力） |
+
+---
+
+## 💡 Django プロジェクトでの注意点
+
+Django プロジェクトでは、特定のアプリだけを対象にすることもできます：
+
+```bash
+coverage run --source='festival' manage.py test
+```
+
+---
+
+## ✅ まとめ
+
+1. `coverage` をインストール  
+2. `coverage run -m pytest` でテスト実行  
+3. `coverage report` または `coverage html` で結果確認  
+
+---
