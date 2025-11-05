@@ -139,3 +139,517 @@ DJANGO_SECRET_KEY=your_django_secret_key_here
 
 [feature_plan.md](../docs/feature_plan.md)
 
+# テスト体制の構築
+
+## 🧪 Djangoプロジェクトのテスト体制構築ガイド
+
+### 1. **テスト方針の決定**
+目的別にテスト対象を整理しましょう：
+
+| テスト対象 | 内容 |
+|------------|------|
+| モデル | フィールド定義、バリデーション、関連性 |
+| ビュー | レスポンスのステータスコード、テンプレートのレンダリング |
+| フォーム | 入力バリデーション、保存処理 |
+| API連携 | Spotify APIのレスポンス、エラーハンドリング（モック化） |
+
+---
+
+### 2. **テスト環境の準備**
+
+#### ✅ 必要パッケージのインストール
+
+```bash
+pip install pytest pytest-django
+```
+
+#### ✅ `pytest` の初期設定
+
+プロジェクトルートに `pytest.ini` を作成：
+
+```ini
+[pytest]
+DJANGO_SETTINGS_MODULE = conf.settings
+python_files = tests.py test_*.py *_tests.py
+```
+
+---
+
+### 3. **テストディレクトリの構成例**
+
+```
+festival/
+├── tests/
+│   ├── test_models.py
+│   ├── test_views.py
+│   ├── test_forms.py
+│   └── test_spotify.py
+```
+
+---
+
+### 4. **テストコードの例**
+
+#### ✅ モデルテスト（`test_models.py`）
+
+```python
+import pytest
+from festival.models import Artist
+
+@pytest.mark.django_db
+def test_artist_str():
+    artist = Artist.objects.create(name="YOASOBI")
+    assert str(artist) == "YOASOBI"
+```
+
+#### ✅ ビューテスト（`test_views.py`）
+
+```python
+from django.urls import reverse
+
+def test_artist_list_view(client):
+    url = reverse("artist_list")
+    response = client.get(url)
+    assert response.status_code == 200
+    assert "アーティスト一覧" in response.content.decode()
+```
+
+#### ✅ Spotify APIモック（`test_spotify.py`）
+
+```python
+from unittest.mock import patch
+from festival.spotify import search_artist
+
+@patch("festival.spotify.requests.get")
+def test_search_artist(mock_get):
+    mock_get.return_value.status_code = 200
+    mock_get.return_value.json.return_value = {
+        "artists": {"items": [{"name": "YOASOBI", "id": "123"}]}
+    }
+    result = search_artist("YOASOBI")
+    assert result["name"] == "YOASOBI"
+```
+
+---
+
+### 5. **テスト実行コマンド**
+
+```bash
+pytest
+```
+
+---
+
+## 📌 次のステップ
+
+- [ ] `tests/` ディレクトリを作成して基本テストを追加  
+- [ ] Spotify API連携部分をモック化してテスト可能にする  
+- [ ] CIツール（GitHub Actionsなど）で自動テストを導入（任意）
+
+---
+
+## 実行結果
+
+```
+short test summary info =================================================== 
+FAILED festival/tests/test_spotify.py::test_search_artist - KeyError: 'popularity'
+FAILED festival/tests/test_views.py::test_artist_list_view - django.urls.exceptions.NoReverseMatch: Reverse for 'artist_list' not found. 'artist_list' is not a valid view function or p...
+================================================= 2 failed, 1 passed in 1.31s 
+```
+
+以下にそれぞれの原因と対処法をまとめました ✅
+
+---
+
+## ❌ 1. `test_spotify.py` のエラー  
+**エラー内容**：`KeyError: 'popularity'`  
+**原因**：モックのレスポンスに `'popularity'` キーが含まれていないため、テスト対象の関数がそのキーを参照した際にエラーが発生。
+
+### ✅ 修正方法
+
+モックのレスポンスに `'popularity'` を含めましょう：
+
+```python
+mock_get.return_value.json.return_value = {
+    "artists": {
+        "items": [{
+            "name": "YOASOBI",
+            "id": "123",
+            "popularity": 85,  # ← 追加
+            "genres": ["j-pop"],
+            "followers": {"total": 100000},
+            "images": []
+        }]
+    }
+}
+```
+
+---
+
+~~~
+## ❌ 2. `test_views.py` のエラー  
+**エラー内容**：`NoReverseMatch: Reverse for 'artist_list' not found.`  
+**原因**：`reverse("artist_list")` に対応するURLパターンが `urls.py` に定義されていない、または名前が一致していない。
+
+### ✅ 修正方法
+
+`conf/urls.py` または `festival/urls.py` に以下のようなURLパターンを追加・確認してください：
+
+```python
+from django.urls import path
+from festival.views import ArtistListView
+
+urlpatterns = [
+    path("artists/", ArtistListView.as_view(), name="artist_list"),
+]
+```
+
+または、関数ベースビューの場合：
+
+```python
+from festival.views import artist_list_view
+
+urlpatterns = [
+    path("artists/", artist_list_view, name="artist_list"),
+]
+```
+
+---
+
+## ✅ テスト再実行
+
+修正後に再度テストを実行して確認しましょう：
+
+```bash
+pytest
+```
+~~~
+
+---
+
+テストで発生していたエラー：
+
+> `NoReverseMatch: Reverse for 'artist_list' not found.`
+
+この原因は、**`reverse("artist_list")` を使っているが、`app_name = 'festival'` が定義されているため、名前空間付きで参照する必要がある**という点にあります。
+
+---
+
+## ✅ 修正方法（テスト側）
+
+テストコードで `reverse()` を使うときは、**名前空間を含めて指定**しましょう：
+
+```python
+from django.urls import reverse
+
+def test_artist_list_view(client):
+    url = reverse("festival:artist_list")  # ← 名前空間を追加
+    response = client.get(url)
+    assert response.status_code == 200
+```
+
+---
+
+## 🔍 補足：名前空間の仕組み
+
+- `app_name = 'festival'` があると、URLの名前は `"festival:artist_list"` のように参照されます。
+- これは複数アプリがある場合の名前の衝突を防ぐためのDjangoの仕組みです。
+
+---
+
+この修正を加えたら、再度 `pytest` を実行してみてください：
+
+```bash
+pytest
+```
+
+## 実行結果
+
+```
+short test summary info =================================================== 
+FAILED festival/tests/test_views.py::test_artist_list_view - RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+================================================= 1 failed, 2 passed in 1.29s
+```
+
+このエラーはとてもよくあるものなので、すぐに解決できます ✅  
+エラーメッセージのポイントはこちらです：
+
+> **RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.**
+
+---
+
+## 🧪 原因
+
+`test_artist_list_view` の中で Django のデータベースにアクセスしている（例：アーティスト一覧を表示するビュー）にもかかわらず、**テスト関数に `@pytest.mark.django_db` が付いていない**ため、pytest がDBアクセスをブロックしています。
+
+---
+
+## ✅ 修正方法
+
+テスト関数に `@pytest.mark.django_db` を追加するだけでOKです：
+
+```python
+import pytest
+from django.urls import reverse
+
+@pytest.mark.django_db
+def test_artist_list_view(client):
+    url = reverse("festival:artist_list")
+    response = client.get(url)
+    assert response.status_code == 200
+```
+
+---
+
+## 🔁 再実行
+
+修正後に再度テストを実行：
+
+```bash
+pytest
+```
+
+## 実行結果
+
+```
+
+festival\tests\test_models.py .                                                                                          [ 33%]
+festival\tests\test_views.py .                                                                                           [ 66%]
+festival\tests\test_spotify.py .                                                                                         [100%]
+
+====================================================== 3 passed in 0.69s 
+```
+
+完璧なテスト通過、おめでとうございます 🎉  
+次におすすめなのは、**フォームのテスト（`test_forms.py`）**です。イベント登録やアーティスト登録など、ユーザー入力が絡む部分はバリデーションの確認が重要です。
+
+---
+
+## 🧪 次のステップ：フォームテストの作成
+
+### ✅ 目的
+- 入力値のバリデーションが正しく機能しているか確認
+- 保存処理が期待通りに動作するか検証
+- 異常系（空欄、重複、無効な日付など）への対応を確認
+
+---
+
+### 🗂 ファイル構成
+
+作成するファイル：  
+```
+festival/tests/test_forms.py
+```
+
+---
+
+### 🧾 テスト例（イベント登録フォーム）
+
+#### ✅ 正常系テスト
+
+```python
+import pytest
+from festival.forms import EventDayPerformanceForm
+from festival.models import Event, Artist, EventDay
+
+@pytest.mark.django_db
+def test_event_day_performance_form_valid():
+    event = Event.objects.create(
+        name="Test Fest",
+        description="テストイベント",
+        start_date="2025-12-01",
+        end_date="2025-12-01",
+        event_type="FES"
+    )
+    EventDay.objects.create(event=event, date="2025-12-01", venue="代々木公園")
+    artist1 = Artist.objects.create(name="YOASOBI", spotify_id="abc123")
+    artist2 = Artist.objects.create(name="Aimer", spotify_id="def456")
+
+    form_data = {
+        "event": event.id,
+        "date": "2025-12-01",
+        "venue": "代々木公園",
+        "artists": [artist1.id, artist2.id],
+    }
+
+    form = EventDayPerformanceForm(data=form_data)
+    form.fields["date"].choices = [("2025-12-01", "2025-12-01")]  # JSの代替
+
+    assert form.is_valid()
+```
+
+---
+
+### ✅ 実行コマンド
+
+```bash
+pytest festival/tests/test_forms.py
+```
+
+---
+
+`BulkArtistForm` に対するテストを作成して、**カンマ区切りのアーティスト名入力が正しく処理されるか**を確認しましょう ✅
+
+---
+
+## 🧪 `BulkArtistForm` のテスト例（test_forms.py）
+
+```python
+import pytest
+from festival.forms import BulkArtistForm
+
+def test_bulk_artist_form_valid():
+    form_data = {
+        "names": "YOASOBI, Aimer, King Gnu"
+    }
+    form = BulkArtistForm(data=form_data)
+    assert form.is_valid()
+    assert form.cleaned_data["names"] == "YOASOBI, Aimer, King Gnu"
+```
+
+---
+
+### ❌ 異常系テスト（空欄）
+
+```python
+def test_bulk_artist_form_invalid_empty():
+    form_data = {
+        "names": ""
+    }
+    form = BulkArtistForm(data=form_data)
+    assert not form.is_valid()
+    assert "names" in form.errors
+```
+
+---
+
+### ✅ 補足：このフォームの役割
+
+- `CharField` + `Textarea` によって、複数のアーティスト名をカンマ区切りで入力
+- バリデーションは Django の標準機能に依存（空欄チェックなど）
+- 実際の処理は `views.bulk_artist_register` 側で `split(',')` などを使って分割しているはず
+
+---
+
+## ✅ テスト実行
+
+```bash
+pytest festival/tests/test_forms.py
+```
+
+ここでは、**代表的なビューに対するテストコードの強化例**をいくつかご紹介します ✅
+
+---
+
+## 🧪 ビューテスト強化：`test_views.py`
+
+以下のように、正常系・異常系を含めてテストを追加していきましょう。
+
+---
+
+### ✅ 1. トップページ（`index`）
+
+```python
+from django.urls import reverse
+import pytest
+
+def test_index_view(client):
+    url = reverse("festival:index")
+    response = client.get(url)
+    assert response.status_code == 200
+    assert "text/html" in response["Content-Type"]
+```
+
+---
+
+### ✅ 2. アーティスト一覧（`artist_list`）
+
+```python
+from festival.models import Artist
+
+@pytest.mark.django_db
+def test_artist_list_view_with_query(client):
+    Artist.objects.create(name="YOASOBI", spotify_id="abc123")
+    Artist.objects.create(name="Aimer", spotify_id="def456")
+
+    url = reverse("festival:artist_list") + "?q=YOA"
+    response = client.get(url)
+    assert response.status_code == 200
+    assert "YOASOBI" in response.content.decode()
+    assert "Aimer" not in response.content.decode()
+```
+
+---
+
+### ✅ 3. アーティスト詳細（`artist_detail`）
+
+```python
+@pytest.mark.django_db
+def test_artist_detail_view(client):
+    artist = Artist.objects.create(name="King Gnu", spotify_id="xyz789")
+    url = reverse("festival:artist_detail", args=[artist.id])
+    response = client.get(url)
+    assert response.status_code == 200
+    assert "King Gnu" in response.content.decode()
+```
+
+---
+
+### ✅ 4. イベント一覧（`event_list`）
+
+```python
+from festival.models import Event
+
+@pytest.mark.django_db
+def test_event_list_view(client):
+    Event.objects.create(
+        name="Test Fest",
+        description="説明",
+        start_date="2025-12-01",
+        end_date="2025-12-02",
+        event_type="FES"
+    )
+    url = reverse("festival:event_list")
+    response = client.get(url)
+    assert response.status_code == 200
+    assert "Test Fest" in response.content.decode()
+```
+
+---
+
+### ✅ 5. イベント詳細（`event_detail`）
+
+```python
+from festival.models import EventDay, Performance
+
+@pytest.mark.django_db
+def test_event_detail_view(client):
+    event = Event.objects.create(
+        name="Winter Sonic",
+        description="冬フェス",
+        start_date="2025-12-10",
+        end_date="2025-12-10",
+        event_type="FES"
+    )
+    day = EventDay.objects.create(event=event, date="2025-12-10", venue="幕張メッセ")
+    artist = Artist.objects.create(name="Aimer", spotify_id="def456")
+    Performance.objects.create(event_day=day, artist=artist, is_confirmed=True)
+
+    url = reverse("festival:event_detail", args=[event.id])
+    response = client.get(url)
+    assert response.status_code == 200
+    assert "Aimer" in response.content.decode()
+```
+
+---
+
+## ✅ テスト実行
+
+```bash
+pytest festival/tests/test_views.py
+```
+
+---
+
+これで主要なビューの表示確認とデータの反映がテストできます。  
+次は `bulk_artist_register` や `register_event_day_and_performances` のPOST処理を含むテストにも進めますが、まずここまでのテストを実行してみましょうか？それともPOST処理のテストにも進みますか？
