@@ -18,9 +18,9 @@ def artist_list(request):
     """アーティストの一覧表示ページ"""
     query = request.GET.get('q')  # 検索語を取得
     if query:
-        artists = Artist.objects.filter(name__icontains=query).order_by('name')
+        artists = Artist.objects.filter(name__icontains=query).order_by('furigana')
     else:
-        artists = Artist.objects.all().order_by('name')
+        artists = Artist.objects.all().order_by('furigana')
     return render(request, 'artist_list.html', {'artists': artists, 'query': query})
 
 def artist_detail(request, pk):

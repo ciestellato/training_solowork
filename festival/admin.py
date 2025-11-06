@@ -5,9 +5,9 @@ from .models import Artist, Event, ManualEntry, Performance, RelatedArtist, Even
 # Register your models here.
 @admin.register(Artist)
 class ArtistAdmin(admin.ModelAdmin):
-    list_display = ('name', 'popularity', 'spotify_id')  # 一覧に表示する項目
+    list_display = ('name', 'furigana', 'popularity', 'spotify_id')  # 一覧に表示する項目
     search_fields = ('name', 'genres')                   # 検索ボックスで検索可能な項目
-    list_filter = ('popularity',)                        # サイドバーにフィルターを追加
+    list_filter = ('genres',)                        # サイドバーにフィルターを追加
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):

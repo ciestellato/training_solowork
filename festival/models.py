@@ -20,7 +20,9 @@ class Event(models.Model):
         return self.name
 
 class Artist(models.Model):
+    """アーティストクラス"""
     name = models.CharField(max_length=255)
+    furigana = models.CharField(max_length=100, blank=True, null=True)
     popularity = models.IntegerField(null=True, blank=True)
     genres = models.JSONField(default=list, blank=True)
     spotify_id = models.CharField(max_length=100, unique=True)
