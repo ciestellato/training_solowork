@@ -87,16 +87,23 @@ def get_event_schedule_json(request):
     })
 
 def bulk_artist_register(request):
-    """アーティストの一括登録処理"""
+    """アーティストの一括登録処理（カンマ・改行対応）"""
     from .forms import BulkArtistForm
 
     message = ''
     if request.method == 'POST':
-        # 登録処理
         form = BulkArtistForm(request.POST)
         if form.is_valid():
             raw_names = form.cleaned_data['names']
-            name_list = [name.strip() for name in raw_names.split(',') if name.strip()]
+
+            # 改行とカンマの両方で分割 → 空白除去 → 空文字除外
+            name_list = []
+            for line in raw_names.splitlines():
+                for name in line.split(','):
+                    cleaned = name.strip()
+                    if cleaned:
+                        name_list.append(cleaned)
+
             created = 0
             skipped = 0
             for name in name_list:
@@ -106,11 +113,15 @@ def bulk_artist_register(request):
                 result = save_artist_from_spotify(name)
                 if result:
                     created += 1
+
             message = f"{created} 件登録、{skipped} 件スキップしました。"
     else:
-        # フォーム初期表示（GET）
         form = BulkArtistForm()
-    return render(request, 'bulk_artist_register.html', {'form': form, 'message': message})
+
+    return render(request, 'bulk_artist_register.html', {
+        'form': form,
+        'message': message
+    })
 
 @staff_member_required
 def register_event_day_and_performances(request):
