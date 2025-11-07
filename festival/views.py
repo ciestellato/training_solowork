@@ -16,24 +16,42 @@ def index(request):
     return render(request, 'index.html')
 
 def artist_list(request):
-    """アーティストの一覧ページ"""
     query = request.GET.get('q')
     initial = request.GET.get('initial')
 
-    artists = Artist.objects.exclude(furigana__isnull=True).exclude(furigana__exact='')
+    # 全アーティスト（initials生成用）
+    all_artists = Artist.objects.exclude(furigana__isnull=True).exclude(furigana__exact='')
 
+    # 表示対象アーティスト（絞り込み）
+    artists = all_artists
     if query:
         artists = artists.filter(name__icontains=query)
-
     if initial:
-        artists = [a for a in artists if get_initial_group(a.furigana) == initial]
-    else:
-        artists = list(artists)
+        artists = artists.filter(furigana__startswith=initial)
 
-    artists.sort(key=lambda a: a.furigana or a.name)
+    artists = artists.order_by('furigana')
 
-    # 頭文字グループ一覧（五十音＋A〜Z）
-    initials = sorted(set(get_initial_group(a.furigana) for a in artists if a.furigana))
+    # initialsは全アーティストから生成（絞り込みに依存しない）
+    def get_initial_group(char):
+        import unicodedata, re
+        char = unicodedata.normalize('NFKC', char)[0].lower()
+        if re.match(r'[a-z]', char):
+            return char.upper()
+        kana_groups = {
+            'あ': 'あ', 'い': 'あ', 'う': 'あ', 'え': 'あ', 'お': 'あ',
+            'か': 'か', 'き': 'か', 'く': 'か', 'け': 'か', 'こ': 'か',
+            'さ': 'さ', 'し': 'さ', 'す': 'さ', 'せ': 'さ', 'そ': 'さ',
+            'た': 'た', 'ち': 'た', 'つ': 'た', 'て': 'た', 'と': 'た',
+            'な': 'な', 'に': 'な', 'ぬ': 'な', 'ね': 'な', 'の': 'な',
+            'は': 'は', 'ひ': 'は', 'ふ': 'は', 'へ': 'は', 'ほ': 'は',
+            'ま': 'ま', 'み': 'ま', 'む': 'ま', 'め': 'ま', 'も': 'ま',
+            'や': 'や', 'ゆ': 'や', 'よ': 'や',
+            'ら': 'ら', 'り': 'ら', 'る': 'ら', 'れ': 'ら', 'ろ': 'ら',
+            'わ': 'わ', 'を': 'わ', 'ん': 'わ',
+        }
+        return kana_groups.get(char, char)
+
+    initials = sorted(set(get_initial_group(a.furigana) for a in all_artists if a.furigana))
     kana_order = ['あ', 'か', 'さ', 'た', 'な', 'は', 'ま', 'や', 'ら', 'わ']
     alpha_order = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
     sorted_initials = [i for i in kana_order + alpha_order if i in initials]

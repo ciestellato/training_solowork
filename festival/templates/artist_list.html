@@ -22,7 +22,7 @@
             <strong class="me-2">ABC:</strong>
             {% for char in initials %}
                 {% if char|length == 1 and char|upper in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' %}
-                    <a href="?initial={{ char }}" class="btn btn-outline-success btn-sm {% if char == initial %}active{% endif %}">{{ char }}</a>
+                    <a href="?initial={{ char }}" class="btn btn-outline-primary btn-sm {% if char == initial %}active{% endif %}">{{ char }}</a>
                 {% endif %}
             {% endfor %}
         </div>
@@ -44,18 +44,18 @@
         <thead>
             <tr>
                 <th>名前</th>
+                <th>ふりがな</th>
                 <th>Spotify ID</th>
                 <th>ジャンル</th>
-                <th>人気度</th>
             </tr>
         </thead>
         <tbody>
             {% for artist in artists %}
             <tr>
                 <td><a href="{% url 'festival:artist_detail' artist.pk %}">{{ artist.name }}</a></td>
+                <td>{{ artist.furigana }}</td>
                 <td>{{ artist.spotify_id }}</td>
                 <td>{{ artist.genres|join:", " }}</td>
-                <td>{{ artist.popularity }}</td>
             </tr>
             {% empty %}
             <tr>
