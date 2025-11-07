@@ -229,6 +229,8 @@ def register_event_day_and_performances(request):
 def paste_schedule_register(request):
     """ツアー日程登録ビュー"""
     message = ''
+    artist_id = request.GET.get('artist_id')
+
     if request.method == 'POST':
         form = ArtistSchedulePasteForm(request.POST)
         if form.is_valid():
@@ -240,8 +242,8 @@ def paste_schedule_register(request):
             event, _ = Event.objects.get_or_create(
                 name=event_name,
                 defaults={
-                    'start_date': '2025-01-01',
-                    'end_date': '2025-12-31',
+                    'start_date': '',
+                    'end_date': '',
                     'event_type': 'TOUR'
                 }
             )
@@ -261,14 +263,18 @@ def paste_schedule_register(request):
                     continue  # 無効な行はスキップ
 
             message = f"{count} 件の出演日程を登録しました。"
-            return redirect(request.path)
+            return redirect('festival:artist_detail', pk=form.cleaned_data['artist'].id)
     else:
-        form = ArtistSchedulePasteForm()
+        initial = {}
+        if artist_id:
+            initial['artist'] = artist_id
+        form = ArtistSchedulePasteForm(initial=initial)
 
     return render(request, 'paste_schedule_register.html', {
         'form': form,
-        'message': message
+        'message': message,
     })
+
 
 def generate_event_date_choices(event):
     """イベントの開催期間から日付選択肢を生成"""

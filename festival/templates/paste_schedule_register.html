@@ -18,6 +18,10 @@
         <button type="submit" class="btn btn-primary">登録する</button>
     </form>
 
-    <a href="{% url 'festival:artist_list' %}" class="btn btn-secondary mt-3">一覧に戻る</a>
+    {% if request.GET.next %}
+        <a href="{{ request.GET.next }}" class="btn btn-secondary mt-3">← {{ form.cleaned_data.artist.name }} の詳細に戻る</a>
+    {% else %}
+        <a href="{% url 'festival:artist_list' %}" class="btn btn-secondary mt-3">← 一覧に戻る</a>
+    {% endif %}
 </body>
 </html>
