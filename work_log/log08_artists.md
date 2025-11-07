@@ -85,3 +85,106 @@ def get_initial_group(char):
     }
     return kana_groups.get(char, char)
 ```
+
+## ツアー日程登録機能
+
+`forms.py`
+
+```
+from django import forms
+from .models import Artist
+
+class ArtistSchedulePasteForm(forms.Form):
+    artist = forms.ModelChoiceField(queryset=Artist.objects.all(), label='アーティスト')
+    event_name = forms.CharField(label='イベント名')
+    raw_text = forms.CharField(
+        label='出演日程（コピペ）',
+        widget=forms.Textarea(attrs={'rows': 10}),
+        help_text='例:\n2025-11-10 Zepp Tokyo\n2025-11-12 名古屋ダイアモンドホール'
+    )
+```
+
+`views.py`
+
+```
+from django.shortcuts import render, redirect
+from .forms import ArtistSchedulePasteForm
+from .models import Event, EventDay, Performance
+from datetime import datetime
+
+def paste_schedule_register(request):
+    message = ''
+    if request.method == 'POST':
+        form = ArtistSchedulePasteForm(request.POST)
+        if form.is_valid():
+            artist = form.cleaned_data['artist']
+            event_name = form.cleaned_data['event_name']
+            raw_text = form.cleaned_data['raw_text']
+
+            # イベント作成または取得
+            event, _ = Event.objects.get_or_create(
+                name=event_name,
+                defaults={
+                    'start_date': '2025-01-01',
+                    'end_date': '2025-12-31',
+                    'event_type': 'TOUR'
+                }
+            )
+
+            count = 0
+            for line in raw_text.splitlines():
+                parts = line.strip().split(maxsplit=1)
+                if len(parts) != 2:
+                    continue
+                date_str, venue = parts
+                try:
+                    date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                    event_day = EventDay.objects.create(event=event, date=date, venue=venue)
+                    Performance.objects.create(event_day=event_day, artist=artist, is_confirmed=True)
+                    count += 1
+                except Exception:
+                    continue  # 無効な行はスキップ
+
+            message = f"{count} 件の出演日程を登録しました。"
+            return redirect(request.path)
+    else:
+        form = ArtistSchedulePasteForm()
+
+    return render(request, 'paste_schedule_register.html', {
+        'form': form,
+        'message': message
+    })
+```
+
+`paste_schedule_register.html`
+
+```
+<h2>📋 出演日程の一括登録</h2>
+
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit" class="btn btn-primary">登録</button>
+</form>
+
+{% if message %}
+  <div class="alert alert-success mt-3">{{ message }}</div>
+{% endif %}
+```
+
+`urls.py`
+
+```
+    # ツアー詳細登録
+    path('tour/register/', views.paste_schedule_register, name='paste_schedule_register'),
+```
+
+`artist_detail.html`
+
+```
+    {% if request.user.is_staff %}
+        <a href="{% url 'festival:paste_schedule_register' %}?artist_id={{ artist.id }}" class="btn btn-outline-primary mb-3">
+            出演日程を一括登録（管理者用）
+        </a>
+    {% endif %}
+```

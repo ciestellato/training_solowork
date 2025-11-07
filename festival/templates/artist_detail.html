@@ -13,8 +13,14 @@
     <ul class="list-group mb-3">
         <li class="list-group-item"><strong>Spotify ID:</strong> {{ artist.spotify_id }}</li>
         <li class="list-group-item"><strong>ジャンル:</strong> {{ artist.genres|join:", " }}</li>
-        <li class="list-group-item"><strong>人気度:</strong> {{ artist.popularity }}</li>
+        <!-- <li class="list-group-item"><strong>人気度:</strong> {{ artist.popularity }}</li> -->
     </ul>
+
+    {% if request.user.is_staff %}
+        <a href="{% url 'festival:paste_schedule_register' %}?artist_id={{ artist.id }}" class="btn btn-outline-primary mb-3">
+            出演日程を一括登録（管理者用）
+        </a><br>
+    {% endif %}
 
     <a href="{% url 'festival:artist_list' %}" class="btn btn-secondary">一覧に戻る</a>
 </body>

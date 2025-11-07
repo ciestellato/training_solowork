@@ -19,3 +19,13 @@ class EventDayPerformanceForm(forms.Form):
         widget=forms.CheckboxSelectMultiple,
         label='出演アーティスト'
     )
+
+class ArtistSchedulePasteForm(forms.Form):
+    """ツアー日程登録用フォーム"""
+    artist = forms.ModelChoiceField(queryset=Artist.objects.all(), label='アーティスト')
+    event_name = forms.CharField(label='イベント名')
+    raw_text = forms.CharField(
+        label='出演日程（コピペ）',
+        widget=forms.Textarea(attrs={'rows': 10}),
+        help_text='例:\n2025-11-10 Zepp Tokyo\n2025-11-12 名古屋ダイアモンドホール'
+    )

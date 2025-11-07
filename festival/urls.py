@@ -20,4 +20,7 @@ urlpatterns = [
     path('event/<int:pk>/', views.event_detail, name='event_detail'),
     # イベント内容登録
     path('eventday/register/', views.register_event_day_and_performances, name='register_event_day'),
+    
+    # ツアー詳細登録
+    path('tour/register/', views.paste_schedule_register, name='paste_schedule_register'),
 ]

@@ -2,10 +2,10 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.serializers.json import DjangoJSONEncoder
 import json
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from .models import Artist, Event, EventDay, Performance
-from .forms import EventDayPerformanceForm
+from .forms import EventDayPerformanceForm, ArtistSchedulePasteForm
 
 from .spotify import save_artist_from_spotify  # Spotify API連携関数
 from .utils import get_initial_group
@@ -126,6 +126,7 @@ def get_event_schedule_json(request):
         'event_data_json': json.dumps(event_data, cls=DjangoJSONEncoder)
     })
 
+@staff_member_required
 def bulk_artist_register(request):
     """アーティストの一括登録処理（カンマ・改行対応）"""
     from .forms import BulkArtistForm
@@ -223,6 +224,51 @@ def register_event_day_and_performances(request):
             'event_data_json': '{}',
             'selected_event_id': ''
         })
+
+@staff_member_required
+def paste_schedule_register(request):
+    """ツアー日程登録ビュー"""
+    message = ''
+    if request.method == 'POST':
+        form = ArtistSchedulePasteForm(request.POST)
+        if form.is_valid():
+            artist = form.cleaned_data['artist']
+            event_name = form.cleaned_data['event_name']
+            raw_text = form.cleaned_data['raw_text']
+
+            # イベント作成または取得
+            event, _ = Event.objects.get_or_create(
+                name=event_name,
+                defaults={
+                    'start_date': '2025-01-01',
+                    'end_date': '2025-12-31',
+                    'event_type': 'TOUR'
+                }
+            )
+
+            count = 0
+            for line in raw_text.splitlines():
+                parts = line.strip().split(maxsplit=1)
+                if len(parts) != 2:
+                    continue
+                date_str, venue = parts
+                try:
+                    date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                    event_day = EventDay.objects.create(event=event, date=date, venue=venue)
+                    Performance.objects.create(event_day=event_day, artist=artist, is_confirmed=True)
+                    count += 1
+                except Exception:
+                    continue  # 無効な行はスキップ
+
+            message = f"{count} 件の出演日程を登録しました。"
+            return redirect(request.path)
+    else:
+        form = ArtistSchedulePasteForm()
+
+    return render(request, 'paste_schedule_register.html', {
+        'form': form,
+        'message': message
+    })
 
 def generate_event_date_choices(event):
     """イベントの開催期間から日付選択肢を生成"""
