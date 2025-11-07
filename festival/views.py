@@ -8,6 +8,7 @@ from .models import Artist, Event, EventDay, Performance
 from .forms import EventDayPerformanceForm
 
 from .spotify import save_artist_from_spotify  # Spotify API連携関数
+from .utils import get_initial_group
 
 # Create your views here.
 def index(request):
@@ -15,13 +16,34 @@ def index(request):
     return render(request, 'index.html')
 
 def artist_list(request):
-    """アーティストの一覧表示ページ"""
-    query = request.GET.get('q')  # 検索語を取得
+    """アーティストの一覧ページ"""
+    query = request.GET.get('q')
+    initial = request.GET.get('initial')
+
+    artists = Artist.objects.exclude(furigana__isnull=True).exclude(furigana__exact='')
+
     if query:
-        artists = Artist.objects.filter(name__icontains=query).order_by('furigana')
+        artists = artists.filter(name__icontains=query)
+
+    if initial:
+        artists = [a for a in artists if get_initial_group(a.furigana) == initial]
     else:
-        artists = Artist.objects.all().order_by('furigana')
-    return render(request, 'artist_list.html', {'artists': artists, 'query': query})
+        artists = list(artists)
+
+    artists.sort(key=lambda a: a.furigana or a.name)
+
+    # 頭文字グループ一覧（五十音＋A〜Z）
+    initials = sorted(set(get_initial_group(a.furigana) for a in artists if a.furigana))
+    kana_order = ['あ', 'か', 'さ', 'た', 'な', 'は', 'ま', 'や', 'ら', 'わ']
+    alpha_order = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
+    sorted_initials = [i for i in kana_order + alpha_order if i in initials]
+
+    return render(request, 'artist_list.html', {
+        'artists': artists,
+        'query': query,
+        'initial': initial,
+        'initials': sorted_initials,
+    })
 
 def artist_detail(request, pk):
     """アーティストの詳細ページ"""

@@ -8,6 +8,29 @@
 <body class="container mt-4">
     <h1>🎤 出演アーティスト一覧</h1>
 
+    <!-- 頭文字タブ -->
+    <div class="mb-3">
+        <div class="d-flex flex-wrap gap-2">
+            <strong class="me-2">五十音:</strong>
+            {% for char in initials %}
+                {% if char in 'あかさたなはまやらわ' %}
+                    <a href="?initial={{ char }}" class="btn btn-outline-primary btn-sm {% if char == initial %}active{% endif %}">{{ char }}</a>
+                {% endif %}
+            {% endfor %}
+        </div>
+        <div class="d-flex flex-wrap gap-2 mt-2">
+            <strong class="me-2">ABC:</strong>
+            {% for char in initials %}
+                {% if char|length == 1 and char|upper in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' %}
+                    <a href="?initial={{ char }}" class="btn btn-outline-success btn-sm {% if char == initial %}active{% endif %}">{{ char }}</a>
+                {% endif %}
+            {% endfor %}
+        </div>
+        <div class="mt-2">
+            <a href="{% url 'festival:artist_list' %}" class="btn btn-secondary btn-sm">すべて表示</a>
+        </div>
+    </div>
+
     <!-- 検索フォーム -->
     <form method="get" class="mb-3">
         <div class="input-group">
