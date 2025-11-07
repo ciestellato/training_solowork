@@ -11,7 +11,7 @@
     {% if message %}
         <div class="alert alert-success">{{ message }}</div>
     {% endif %}
-    
+
     <h2>{{ event.name }} - {{ event_day.date }} の出演者編集</h2>
 
     <form method="post">
@@ -24,7 +24,9 @@
     
 <script type="text/javascript">
     const eventData = JSON.parse('{{ event_data_json|escapejs }}' || '{}');
+    console.log("event_data_json:", eventData);
     const selectedEventId = "{{ selected_event_id }}";
+    const initialDate = "{{ event_day.date|date:'Y-m-d' }}";  // ← Djangoから埋め込む
 
     function updateDateOptions() {
         const dateSelect = document.getElementById("id_date");
@@ -34,19 +36,25 @@
             const start = new Date(eventData[selectedEventId].start);
             const end = new Date(eventData[selectedEventId].end);
 
-            for (let d = new Date(start); d.getTime() <= new Date(end).getTime(); d.setDate(d.getDate() + 1)) {
+            for (let d = new Date(start); d.getTime() <= end.getTime(); d.setDate(d.getDate() + 1)) {
                 const dateStr = d.toISOString().split('T')[0];
                 const option = document.createElement("option");
                 option.value = dateStr;
                 option.text = dateStr;
+
+                // 初期値と一致する日付を選択状態にする
+                if (dateStr === initialDate) {
+                    option.selected = true;
+                }
+
                 dateSelect.appendChild(option);
             }
         }
     }
 
     document.addEventListener("DOMContentLoaded", function() {
-        updateDateOptions();
-        document.getElementById("id_event").disabled = true;  // イベント選択を固定
+        updateDateOptions();  // 選択肢と初期選択をまとめて処理
+        document.getElementById("id_event").disabled = true;
     });
 </script>
 </body>

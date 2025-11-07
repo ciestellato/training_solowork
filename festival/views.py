@@ -227,34 +227,72 @@ def register_event_day_and_performances(request):
 
 @staff_member_required
 def edit_event_day_performances(request, event_day_id):
-    """特定の EventDay に紐づく出演者を編集するビュー"""
+    """特定の EventDay に紐づく出演者を編集するビュー（管理者専用）"""
+
+    # 対象の EventDay を取得（存在しない場合は 404）
     event_day = get_object_or_404(EventDay, pk=event_day_id)
+
+    # EventDay に紐づくイベントを取得
     event = event_day.event
+
+    # 現在登録されている出演者の ID を取得（初期値用）
     existing_artists = event_day.performance_set.values_list('artist_id', flat=True)
 
+    # POST（フォーム送信）時の処理
     if request.method == 'POST':
+        # フォームを送信データで初期化
         form = EventDayPerformanceForm(request.POST)
+
+        # 日付選択肢を1件だけ設定（この EventDay の日付）
         form.fields['date'].choices = [(event_day.date.strftime('%Y-%m-%d'), event_day.date.strftime('%Y-%m-%d'))]
+
+        # バリデーション成功時の処理
         if form.is_valid():
-            # 既存の出演者を削除して再登録
+            # 既存の出演者を削除
             Performance.objects.filter(event_day=event_day).delete()
+
+            # 新しい出演者を登録
             for artist in form.cleaned_data['artists']:
                 Performance.objects.create(event_day=event_day, artist=artist, is_confirmed=True)
+
+            # 成功メッセージをセッションに保存してリダイレクト（PRGパターン）
             request.session['message'] = f"{event_day} の出演者を更新しました。"
             return redirect('festival:event_detail', pk=event.id)
+
+    # GET（初期表示）時の処理
     else:
+        # 日付を文字列に変換
+        date_str = event_day.date.strftime('%Y-%m-%d')
+
+        # 選択肢として1件だけ設定
+        date_choices = [(date_str, date_str)]
+
+        # フォームを初期値付きで生成
         form = EventDayPerformanceForm(initial={
             'event': event,
-            'date': event_day.date.strftime('%Y-%m-%d'),
+            'date': date_str,
             'venue': event_day.venue,
             'artists': existing_artists
         })
-        form.fields['date'].choices = [(event_day.date.strftime('%Y-%m-%d'), event_day.date.strftime('%Y-%m-%d'))]
 
+        # 日付選択肢を設定（初期値と一致させる）
+        form.fields['date'].choices = date_choices
+
+    # イベントの開催期間をJSON化してテンプレートに渡す
+    event_data_json = json.dumps({
+        str(event.id): {
+            "start": event.start_date.strftime('%Y-%m-%d'),
+            "end": event.end_date.strftime('%Y-%m-%d')
+        }
+    })
+
+    # テンプレートに渡すコンテキスト
     return render(request, 'edit_event_day.html', {
         'form': form,
         'event_day': event_day,
-        'event': event
+        'event': event,
+        'event_data_json': event_data_json,
+        'selected_event_id': str(event.id)
     })
 
 @staff_member_required
