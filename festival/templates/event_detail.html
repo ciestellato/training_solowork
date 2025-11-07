@@ -25,19 +25,27 @@
                 <div>
                     <a href="{% url 'festival:artist_detail' perf.artist.pk %}">{{ perf.artist.name }}</a>
                 </div>
-                {% if perf.is_confirmed %}
+                <!-- {% if perf.is_confirmed %}
                     <span class="badge bg-success">確定</span>
                 {% else %}
                     <span class="badge bg-warning text-dark">未確定</span>
-                {% endif %}
+                {% endif %} -->
             </li>
             {% empty %}
             <li class="list-group-item text-muted">出演者未登録</li>
             {% endfor %}
         </ul>
+        {% if request.user.is_staff %}
+            <p>
+                <a href="{% url 'festival:edit_event_day_performances' day.id %}" class="btn btn-sm btn-outline-secondary">
+                出演者を編集
+                </a>
+            </p>
+        {% endif %}
     {% empty %}
         <p>日程が登録されていません。</p>
     {% endfor %}
+
     <a href="{% url 'festival:register_event_day' %}?event_id={{ event.id }}" class="btn btn-secondary">このイベントに出演者を登録</a> 
     <a href="{% url 'festival:event_list' %}" class="btn btn-secondary">イベント一覧に戻る</a>
 </body>
