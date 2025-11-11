@@ -16,6 +16,16 @@
 
     <form method="post">
         {% csrf_token %}
+
+        <!-- 表示用（編集不可） -->
+        <div class="mb-3">
+            <label class="form-label">イベント名</label>
+            <input type="text" class="form-control" value="{{ event.name }}" readonly>
+        </div>
+
+        <!-- 実際に送信される hidden フィールド -->
+        <input type="hidden" name="event" value="{{ event.id }}">
+        
         {{ form.as_p }}
         <button type="submit" class="btn btn-primary">更新</button>
     </form>
@@ -54,7 +64,10 @@
 
     document.addEventListener("DOMContentLoaded", function() {
         updateDateOptions();  // 選択肢と初期選択をまとめて処理
-        document.getElementById("id_event").disabled = true;
+        const eventField = document.getElementById("id_event");
+        if (eventField) {
+            eventField.disabled = true;
+        }
     });
 </script>
 </body>

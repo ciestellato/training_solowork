@@ -240,42 +240,42 @@ def edit_event_day_performances(request, event_day_id):
 
     # POST（フォーム送信）時の処理
     if request.method == 'POST':
-        # フォームを送信データで初期化
         form = EventDayPerformanceForm(request.POST)
+
+        # ✅ hiddenフィールドで送信された event ID を取得して Event オブジェクトに変換
+        event_id = request.POST.get('event')
+        if event_id:
+            try:
+                event = Event.objects.get(pk=event_id)
+            except Event.DoesNotExist:
+                form.add_error(None, "指定されたイベントが存在しません。")
 
         # 日付選択肢を1件だけ設定（この EventDay の日付）
         form.fields['date'].choices = [(event_day.date.strftime('%Y-%m-%d'), event_day.date.strftime('%Y-%m-%d'))]
 
-        # バリデーション成功時の処理
         if form.is_valid():
-            # 既存の出演者を削除
+            # 出演者情報を更新
             Performance.objects.filter(event_day=event_day).delete()
-
-            # 新しい出演者を登録
             for artist in form.cleaned_data['artists']:
                 Performance.objects.create(event_day=event_day, artist=artist, is_confirmed=True)
 
-            # 成功メッセージをセッションに保存してリダイレクト（PRGパターン）
+            # 成功メッセージをセッションに保存してリダイレクト
             request.session['message'] = f"{event_day} の出演者を更新しました。"
             return redirect('festival:event_detail', pk=event.id)
 
-    # GET（初期表示）時の処理
     else:
-        # 日付を文字列に変換
+        # GET（初期表示）時の処理
         date_str = event_day.date.strftime('%Y-%m-%d')
-
-        # 選択肢として1件だけ設定
         date_choices = [(date_str, date_str)]
 
-        # フォームを初期値付きで生成
+        # ✅ event は hiddenフィールドで送信されるため、initial に含める必要あり
         form = EventDayPerformanceForm(initial={
-            'event': event,
+            'event': event.id,  # hiddenフィールド用にIDを渡す
             'date': date_str,
             'venue': event_day.venue,
             'artists': existing_artists
         })
 
-        # 日付選択肢を設定（初期値と一致させる）
         form.fields['date'].choices = date_choices
 
     # イベントの開催期間をJSON化してテンプレートに渡す
@@ -286,7 +286,6 @@ def edit_event_day_performances(request, event_day_id):
         }
     })
 
-    # テンプレートに渡すコンテキスト
     return render(request, 'edit_event_day.html', {
         'form': form,
         'event_day': event_day,
