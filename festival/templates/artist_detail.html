@@ -19,10 +19,15 @@
     {% if request.user.is_staff %}
         <a href="{% url 'festival:paste_schedule_register' %}?artist_id={{ artist.id }}&next={{ request.path }}"
             class="btn btn-outline-primary mb-3">
-            出演日程を一括登録
+            ツアー日程を一括登録
         </a><br>
     {% endif %}
 
-    <a href="{% url 'festival:artist_list' %}" class="btn btn-secondary">一覧に戻る</a>
+    <p>
+        {% if request.user.is_staff %}
+            <a href="{% url 'festival:edit_artist' artist.id %}" class="btn btn-sm btn-outline-primary">編集</a>
+        {% endif %}<br>
+        <a href="{% url 'festival:artist_list' %}" class="btn btn-secondary">一覧に戻る</a>
+    </p>
 </body>
 </html>

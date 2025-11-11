@@ -314,4 +314,94 @@ class EventDayPerformanceForm(forms.Form):
 
 ---
 
-次は、出演者のジャンルや人気度によるフィルタリング、出演履歴の表示なども追加できます。必要があれば、どんどんご相談ください！
+アーティスト情報の編集機能を追加するには、以下の4ステップで構成するのがベストです：
+
+---
+
+## ✅ ステップ1：フォームクラスを作成（`forms.py`）
+
+```python
+from django import forms
+from .models import Artist
+
+class ArtistForm(forms.ModelForm):
+    class Meta:
+        model = Artist
+        fields = ['name', 'furigana', 'popularity', 'genres', 'spotify_id']
+        widgets = {
+            'genres': forms.Textarea(attrs={'rows': 2}),
+        }
+```
+
+> 🔹 `genres` は JSONField ですが、編集画面では文字列リストとして扱うため、テキストエリアで表示します。
+
+---
+
+## ✅ ステップ2：ビュー関数を追加（`views.py`）
+
+```python
+from django.shortcuts import render, get_object_or_404, redirect
+from .models import Artist
+from .forms import ArtistForm
+
+def edit_artist(request, artist_id):
+    artist = get_object_or_404(Artist, pk=artist_id)
+
+    if request.method == 'POST':
+        form = ArtistForm(request.POST, instance=artist)
+        if form.is_valid():
+            form.save()
+            return redirect('artist_detail', artist_id=artist.id)
+    else:
+        form = ArtistForm(instance=artist)
+
+    return render(request, 'artist_form.html', {
+        'form': form,
+        'artist': artist,
+        'mode': 'edit'
+    })
+```
+
+---
+
+## ✅ ステップ3：URLルーティングを追加（`urls.py`）
+
+```python
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('artist/edit/<int:artist_id>/', views.edit_artist, name='edit_artist'),
+]
+```
+
+---
+
+## ✅ ステップ4：テンプレートを作成（`artist_form.html`）
+
+```django
+<h1>🎤 アーティスト情報編集</h1>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">更新</button>
+</form>
+
+<a href="{% url 'artist_detail' artist.id %}" class="btn btn-secondary mt-3">← アーティスト詳細に戻る</a>
+```
+
+---
+
+## ✅ オプション：詳細ページに「編集」リンクを追加
+
+```django
+{% if request.user.is_staff %}
+    <a href="{% url 'edit_artist' artist.id %}" class="btn btn-sm btn-outline-primary">編集</a>
+{% endif %}
+```
+
+---
+
+これで、アーティスト情報の編集機能が管理画面以外でも使えるようになります！  
+次は「登録機能」「ジャンルの選択肢化」「Spotify連携」なども追加できます。どれから進めましょう？

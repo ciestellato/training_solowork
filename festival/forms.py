@@ -9,6 +9,15 @@ class BulkArtistForm(forms.Form):
         label='アーティスト名（カンマ区切り）'
     )
 
+class ArtistForm(forms.ModelForm):
+    """アーティスト情報編集フォーム"""
+    class Meta:
+        model = Artist
+        fields = ['name', 'furigana', 'popularity', 'genres', 'spotify_id']
+        widgets = {
+            'genres': forms.Textarea(attrs={'rows': 2}),
+        }
+
 class EventDayPerformanceForm(forms.Form):
     """イベント内容・出演者入力フォーム"""
     event = forms.ModelChoiceField(queryset=Event.objects.all(), label='イベント')

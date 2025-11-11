@@ -5,7 +5,7 @@ import json
 from datetime import timedelta, datetime
 
 from .models import Artist, Event, EventDay, Performance
-from .forms import EventDayPerformanceForm, ArtistSchedulePasteForm, EventForm
+from .forms import EventDayPerformanceForm, ArtistSchedulePasteForm, EventForm, ArtistForm
 
 from .spotify import save_artist_from_spotify  # Spotify API連携関数
 from .utils import get_initial_group
@@ -172,6 +172,25 @@ def bulk_artist_register(request):
     return render(request, 'bulk_artist_register.html', {
         'form': form,
         'message': message
+    })
+
+@staff_member_required
+def edit_artist(request, artist_id):
+    """アーティスト情報編集ビュー"""
+    artist = get_object_or_404(Artist, pk=artist_id)
+
+    if request.method == 'POST':
+        form = ArtistForm(request.POST, instance=artist)
+        if form.is_valid():
+            form.save()
+            return redirect('festival:artist_detail', pk=artist.id)
+    else:
+        form = ArtistForm(instance=artist)
+
+    return render(request, 'artist_form.html', {
+        'form': form,
+        'artist': artist,
+        'mode': 'edit'
     })
 
 @staff_member_required
