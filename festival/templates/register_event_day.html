@@ -15,41 +15,90 @@
     <form method="post">
         {% csrf_token %}
         <input type="hidden" name="event" value="{{ selected_event_id }}">
+
         {{ form.date }}
         {{ form.venue }}
-        {{ form.artists }}
-        <button type="submit" class="btn btn-primary">登録する</button>
 
+        <!-- 🔍 検索バー -->
+        <div class="mb-3">
+            <label for="artistSearch" class="form-label">出演者検索</label>
+            <input type="text" id="artistSearch" class="form-control" placeholder="アーティスト名を入力" autocomplete="off" aria-label="出演者検索">
+        </div>
+
+        <!-- ✅ 組数表示 -->
+        <div class="mb-2">
+            <span id="artistCount" class="text-muted">出演者数: 0組</span>
+        </div>
+
+        {{ form.artists }}
+
+        <button type="submit" class="btn btn-primary">登録する</button>
     </form>
 
     <a href="{% url 'festival:event_list' %}" class="btn btn-secondary mt-3">イベント一覧に戻る</a>
 
-<script type="text/javascript">
-    const eventData = JSON.parse('{{ event_data_json|escapejs }}' || '{}');
-    const selectedEventId = "{{ selected_event_id }}";
+    <script type="text/javascript">
+        const eventData = JSON.parse('{{ event_data_json|escapejs }}' || '{}');
+        const selectedEventId = "{{ selected_event_id }}";
 
-    function updateDateOptions() {
-        const dateSelect = document.getElementById("id_date");
-        dateSelect.innerHTML = "";
+        function updateDateOptions() {
+            const dateSelect = document.getElementById("id_date");
+            if (!dateSelect) return;
+            dateSelect.innerHTML = "";
 
-        if (eventData[selectedEventId]) {
-            const start = new Date(eventData[selectedEventId].start);
-            const end = new Date(eventData[selectedEventId].end);
+            if (eventData[selectedEventId]) {
+                const start = new Date(eventData[selectedEventId].start);
+                const end = new Date(eventData[selectedEventId].end);
 
-            for (let d = new Date(start); d.getTime() <= new Date(end).getTime(); d.setDate(d.getDate() + 1)) {
-                const dateStr = d.toISOString().split('T')[0];
-                const option = document.createElement("option");
-                option.value = dateStr;
-                option.text = dateStr;
-                dateSelect.appendChild(option);
+                for (let d = new Date(start); d.getTime() <= new Date(end).getTime(); d.setDate(d.getDate() + 1)) {
+                    const dateStr = d.toISOString().split('T')[0];
+                    const option = document.createElement("option");
+                    option.value = dateStr;
+                    option.text = dateStr;
+                    dateSelect.appendChild(option);
+                }
             }
         }
-    }
 
-    document.addEventListener("DOMContentLoaded", function() {
-        updateDateOptions();
-        document.getElementById("id_event").disabled = true;  // イベント選択を固定
-    });
-</script>
+        function sortArtistsByChecked() {
+            const container = document.getElementById("id_artists");
+            const items = Array.from(container.querySelectorAll("label"));
+            const checked = items.filter(label => label.querySelector("input").checked);
+            const unchecked = items.filter(label => !label.querySelector("input").checked);
+
+            // 並び替え
+            container.innerHTML = "";
+            [...checked, ...unchecked].forEach(label => container.appendChild(label));
+        }
+
+        function updateArtistCount() {
+            const count = document.querySelectorAll("#id_artists input[type='checkbox']:checked").length;
+            document.getElementById("artistCount").textContent = `出演者数: ${count}組`;
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            updateDateOptions();
+            sortArtistsByChecked();
+            updateArtistCount();
+
+            const searchInput = document.getElementById("artistSearch");
+            const artistLabels = document.querySelectorAll("#id_artists label");
+
+            if (searchInput && artistLabels.length > 0) {
+                searchInput.addEventListener("input", function () {
+                    const keyword = this.value.toLowerCase();
+                    artistLabels.forEach(label => {
+                        const text = label.textContent.toLowerCase();
+                        label.style.display = text.includes(keyword) ? "block" : "none";
+                    });
+                });
+            }
+
+            // チェック状態変更時に組数更新
+            document.querySelectorAll("#id_artists input[type='checkbox']").forEach(checkbox => {
+                checkbox.addEventListener("change", updateArtistCount);
+            });
+        });
+    </script>
 </body>
 </html>

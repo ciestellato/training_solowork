@@ -29,6 +29,9 @@ class Artist(models.Model):
 
     def __str__(self):
         return self.name
+    
+    class Meta:
+        ordering = ['furigana']  # ふりがな順で並び替え
 
 class EventDay(models.Model):
     """公演日・会場単位のクラス"""
