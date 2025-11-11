@@ -16,6 +16,9 @@
                     <span class="badge bg-secondary">{{ event.get_event_type_display }}</span>
                     <span class="text-muted">（{{ event.start_date }}〜{{ event.end_date }}）</span>
                 </li>
+                    {% if request.user.is_staff %}
+                        <a href="{% url 'festival:edit_event' event.id %}" class="btn btn-outline-secondary mt-3">イベントを編集する</a>
+                    {% endif %}
             {% endfor %}
         </ul>
     {% else %}

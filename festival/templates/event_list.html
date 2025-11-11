@@ -19,6 +19,9 @@
         <div class="card-body">
             <p>{{ event.description|linebreaks }}</p>
         </div>
+        {% if request.user.is_staff %}
+            <a href="{% url 'festival:edit_event' event.id %}" class="btn btn-outline-secondary mt-3">イベントを編集する</a>
+        {% endif %}
     </div>
     {% empty %}
     <p>イベントが登録されていません。</p>
