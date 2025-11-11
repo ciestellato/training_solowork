@@ -16,6 +16,11 @@ urlpatterns = [
 
     # イベント一覧表示
     path('events/', views.event_list, name='event_list'),
+    # イベント一覧表示（フェスのみ）
+    path('events/fes/', views.fes_event_list, name='fes_event_list'),
+    # イベント一覧表示（フェス以外）
+    path('events/other/', views.other_event_list, name='other_event_list'),
+
     # イベント詳細表示
     path('event/<int:pk>/', views.event_detail, name='event_detail'),
     # イベント内容登録

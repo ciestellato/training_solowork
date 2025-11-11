@@ -73,6 +73,16 @@ def event_list(request):
     events = Event.objects.all().order_by('start_date')
     return render(request, 'event_list.html', {'events': events})
 
+def fes_event_list(request):
+    """フェスイベント一覧ページ"""
+    events = Event.objects.filter(event_type='FES').order_by('start_date')
+    return render(request, 'event_list_fes.html', {'events': events})
+
+def other_event_list(request):
+    """フェス以外のイベント一覧ページ"""
+    events = Event.objects.exclude(event_type='FES').order_by('start_date')
+    return render(request, 'event_list_other.html', {'events': events})
+
 def event_detail(request, pk):
     """イベント詳細ページ"""
     event = get_object_or_404(Event, pk=pk)
