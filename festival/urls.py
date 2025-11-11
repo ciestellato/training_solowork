@@ -28,6 +28,11 @@ urlpatterns = [
     # イベント詳細編集
     path('event_day/<int:event_day_id>/edit/', views.edit_event_day_performances, name='edit_event_day_performances'),
     
+    # イベント登録
+    path('events/create/', views.create_event, name='create_event'),
+    # イベント編集
+    path('events/edit/<int:event_id>/', views.edit_event, name='edit_event'),
+
     # ツアー詳細登録
     path('tour/register/', views.paste_schedule_register, name='paste_schedule_register'),
 ]

@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Event, EventDay, Artist, Performance
+from .models import Event, EventDay, Artist, Performance, Event
 
 class BulkArtistForm(forms.Form):
     """アーティスト一括登録フォーム"""
@@ -29,3 +29,13 @@ class ArtistSchedulePasteForm(forms.Form):
         widget=forms.Textarea(attrs={'rows': 10}),
         help_text='例:\n2025-11-10 Zepp Tokyo\n2025-11-12 名古屋ダイアモンドホール'
     )
+
+class EventForm(forms.ModelForm):
+    """イベントの登録・編集フォーム"""
+    class Meta:
+        model = Event
+        fields = ['name', 'event_type', 'start_date', 'end_date', 'description']
+        widgets = {
+            'start_date': forms.DateInput(attrs={'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'type': 'date'}),
+        }
