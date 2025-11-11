@@ -51,7 +51,7 @@ class EventForm(forms.ModelForm):
     """イベントの登録・編集フォーム"""
     class Meta:
         model = Event
-        fields = ['name', 'event_type', 'start_date', 'end_date', 'description']
+        fields = ['name', 'event_type', 'start_date', 'end_date', 'description', 'official_url']
         widgets = {
             'start_date': forms.DateInput(attrs={'type': 'date'}),
             'end_date': forms.DateInput(attrs={'type': 'date'}),

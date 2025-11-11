@@ -15,6 +15,7 @@ class Event(models.Model):
     start_date = models.DateField()
     end_date = models.DateField()
     event_type = models.CharField(max_length=10, choices=EVENT_TYPE_CHOICES)
+    official_url = models.URLField(blank=True, null=True, verbose_name='公式サイトURL')
     
     def __str__(self):
         return self.name
