@@ -14,25 +14,10 @@
     <div class="card mb-4">
         <div class="card-header">
             <strong><a href="{% url 'festival:event_detail' event.pk %}">{{ event.name }}</a></strong>
-            （{{ event.start_date }}〜{{ event.end_date }} / {{ event.location }}）
+            （{{ event.start_date }}〜{{ event.end_date }}）
         </div>
         <div class="card-body">
             <p>{{ event.description|linebreaks }}</p>
-            <h5>出演者一覧</h5>
-            <ul class="list-group">
-                {% for perf in event.performance_set.all %}
-                <li class="list-group-item">
-                    {{ perf.performance_date }}：{{ perf.artist.name }}
-                    {% if perf.is_confirmed %}
-                        <span class="badge bg-success">確定</span>
-                    {% else %}
-                        <span class="badge bg-warning text-dark">未確定</span>
-                    {% endif %}
-                </li>
-                {% empty %}
-                <li class="list-group-item text-muted">出演者未登録</li>
-                {% endfor %}
-            </ul>
         </div>
     </div>
     {% empty %}
