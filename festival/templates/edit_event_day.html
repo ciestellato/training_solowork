@@ -25,18 +25,25 @@
 
         <!-- 実際に送信される hidden フィールド -->
         <input type="hidden" name="event" value="{{ event.id }}">
-        
+
+        <!-- 出演者検索ボックス -->
+        <div class="mb-3">
+            <label for="artistSearch" class="form-label">出演者検索</label>
+            <input type="text" id="artistSearch" class="form-control" placeholder="名前で絞り込み">
+        </div>
+
+        <!-- Djangoフォーム出力 -->
         {{ form.as_p }}
+
         <button type="submit" class="btn btn-primary">更新</button>
     </form>
 
     <a href="{% url 'festival:event_detail' event.id %}" class="btn btn-secondary mt-3">← イベント詳細に戻る</a>
-    
+
 <script type="text/javascript">
     const eventData = JSON.parse('{{ event_data_json|escapejs }}' || '{}');
-    console.log("event_data_json:", eventData);
     const selectedEventId = "{{ selected_event_id }}";
-    const initialDate = "{{ event_day.date|date:'Y-m-d' }}";  // ← Djangoから埋め込む
+    const initialDate = "{{ event_day.date|date:'Y-m-d' }}";
 
     function updateDateOptions() {
         const dateSelect = document.getElementById("id_date");
@@ -52,7 +59,6 @@
                 option.value = dateStr;
                 option.text = dateStr;
 
-                // 初期値と一致する日付を選択状態にする
                 if (dateStr === initialDate) {
                     option.selected = true;
                 }
@@ -63,10 +69,29 @@
     }
 
     document.addEventListener("DOMContentLoaded", function() {
-        updateDateOptions();  // 選択肢と初期選択をまとめて処理
+        updateDateOptions();
+
         const eventField = document.getElementById("id_event");
         if (eventField) {
             eventField.disabled = true;
+        }
+
+        // 出演者検索機能（CheckboxSelectMultiple対応）
+        const searchInput = document.getElementById("artistSearch");
+        const artistLabels = document.querySelectorAll("#id_artists label");
+
+        if (searchInput && artistLabels.length > 0) {
+            searchInput.addEventListener("input", function () {
+                const keyword = this.value.toLowerCase();
+
+                artistLabels.forEach(label => {
+                    const text = label.textContent.toLowerCase();
+                    const parentDiv = label.closest("div");
+                    if (parentDiv) {
+                        parentDiv.style.display = text.includes(keyword) ? "block" : "none";
+                    }
+                });
+            });
         }
     });
 </script>
