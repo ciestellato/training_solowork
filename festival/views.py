@@ -66,7 +66,14 @@ def artist_list(request):
 def artist_detail(request, pk):
     """アーティストの詳細ページ"""
     artist = get_object_or_404(Artist, pk=pk)
-    return render(request, 'artist_detail.html', {'artist': artist})
+    
+    # 出演情報が入力されているイベント日程を取得（確定・未確定問わず）
+    performances = Performance.objects.filter(artist=artist).select_related('event_day__event')
+
+    return render(request, 'artist_detail.html', {
+        'artist': artist,
+        'performances': performances,
+    })
 
 def event_list(request):
     """イベントの一覧表示ページ"""

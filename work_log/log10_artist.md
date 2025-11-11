@@ -403,5 +403,63 @@ urlpatterns = [
 
 ---
 
-これで、アーティスト情報の編集機能が管理画面以外でも使えるようになります！  
-次は「登録機能」「ジャンルの選択肢化」「Spotify連携」なども追加できます。どれから進めましょう？
+素晴らしい流れです！  
+アーティスト詳細画面に「出演確定済みのイベント一覧」を追加するには、以下の2ステップで実装できます：
+
+---
+
+## ✅ ステップ①：ビュー関数で出演情報を取得（`views.py`）
+
+```python
+from .models import Performance
+
+def artist_detail(request, pk):
+    artist = get_object_or_404(Artist, pk=pk)
+
+    # 出演確定済みのイベント日程を取得
+    confirmed_performances = Performance.objects.filter(artist=artist, is_confirmed=True).select_related('event_day__event')
+
+    return render(request, 'artist_detail.html', {
+        'artist': artist,
+        'confirmed_performances': confirmed_performances,
+    })
+```
+
+---
+
+## ✅ ステップ②：テンプレートに出演イベント一覧を追加（`artist_detail.html`）
+
+```django
+<h2 class="mt-4">🎤 出演確定イベント</h2>
+{% if confirmed_performances %}
+    <ul class="list-group mb-4">
+        {% for perf in confirmed_performances %}
+            <li class="list-group-item">
+                <strong>{{ perf.event_day.date }}</strong> @ {{ perf.event_day.venue }}<br>
+                <a href="{% url 'festival:event_detail' perf.event_day.event.id %}">{{ perf.event_day.event.name }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p class="text-muted">出演確定イベントはまだありません。</p>
+{% endif %}
+```
+
+---
+
+## ✅ 出力例
+
+```
+🎤 出演確定イベント
+
+- 2025-11-15 @ 幕張メッセ
+  フェスティバル2025
+
+- 2025-12-03 @ Zepp Tokyo
+  冬のツアー2025
+```
+
+---
+
+この追加で、アーティストの活動履歴が一目でわかるようになります！  
+次は「未確定の出演予定」「過去と未来の分類」「ジャンル別の色分け」などもできます。どれに進みましょう？
