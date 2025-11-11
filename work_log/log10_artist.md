@@ -461,5 +461,133 @@ def artist_detail(request, pk):
 
 ---
 
-この追加で、アーティストの活動履歴が一目でわかるようになります！  
-次は「未確定の出演予定」「過去と未来の分類」「ジャンル別の色分け」などもできます。どれに進みましょう？
+**アーティストの名前とふりがなを一括編集できる画面は、Djangoのフォーム＋JavaScriptで実装可能です。頭文字タブによる絞り込みもJSで動的に制御できます。**
+
+---
+
+## ✅ 機能概要
+
+- 登録済みのアーティスト一覧を表示
+- 各行に `name` と `furigana` の入力欄を設置
+- 頭文字（あ〜わ）で絞り込みタブを表示
+- 編集後に「保存」ボタンで一括更新
+
+---
+
+## 🧾 フォームクラス（`forms.py`）
+
+```python
+from django import forms
+from .models import Artist
+
+class ArtistBulkEditForm(forms.Form):
+    def __init__(self, *args, artists=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        for artist in artists:
+            self.fields[f'name_{artist.id}'] = forms.CharField(initial=artist.name, label='', required=False)
+            self.fields[f'furigana_{artist.id}'] = forms.CharField(initial=artist.furigana, label='', required=False)
+```
+
+---
+
+## 🧠 ビュー関数（`views.py`）
+
+```python
+from django.shortcuts import render, redirect
+from .models import Artist
+from .forms import ArtistBulkEditForm
+
+def edit_artist_bulk(request):
+    artists = Artist.objects.all().order_by('furigana')
+    if request.method == 'POST':
+        form = ArtistBulkEditForm(request.POST, artists=artists)
+        if form.is_valid():
+            for artist in artists:
+                new_name = form.cleaned_data.get(f'name_{artist.id}')
+                new_furigana = form.cleaned_data.get(f'furigana_{artist.id}')
+                if new_name != artist.name or new_furigana != artist.furigana:
+                    artist.name = new_name
+                    artist.furigana = new_furigana
+                    artist.save()
+            return redirect('festival:artist_list')
+    else:
+        form = ArtistBulkEditForm(artists=artists)
+    return render(request, 'artist_bulk_edit.html', {'form': form, 'artists': artists})
+```
+
+---
+
+## 🌐 URL設定（`urls.py`）
+
+```python
+path('artist/bulk_edit/', views.edit_artist_bulk, name='edit_artist_bulk'),
+```
+
+---
+
+## 🎨 テンプレート（`artist_bulk_edit.html`）
+
+```html
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>アーティスト一括編集</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .tab-button { margin: 0 4px; }
+        .artist-row { display: flex; gap: 1rem; margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body class="container mt-4">
+    <h1>🎶 アーティスト一括編集</h1>
+
+    <!-- 頭文字タブ -->
+    <div class="mb-3">
+        <button class="btn btn-outline-secondary tab-button" data-initial="all">すべて</button>
+        {% for kana in "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわ" %}
+            <button class="btn btn-outline-secondary tab-button" data-initial="{{ kana }}">{{ kana }}</button>
+        {% endfor %}
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        {% for artist in artists %}
+            <div class="artist-row artist-block" data-initial="{{ artist.furigana|slice:":1" }}">
+                <input type="text" name="name_{{ artist.id }}" value="{{ artist.name }}" class="form-control" placeholder="名前">
+                <input type="text" name="furigana_{{ artist.id }}" value="{{ artist.furigana }}" class="form-control" placeholder="ふりがな">
+            </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary mt-3">保存</button>
+    </form>
+
+<script>
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const initial = btn.dataset.initial;
+            document.querySelectorAll('.artist-block').forEach(row => {
+                if (initial === 'all' || row.dataset.initial.startsWith(initial)) {
+                    row.style.display = 'flex';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
+</body>
+</html>
+```
+
+---
+
+## ✅ 補足
+
+- `furigana|slice:":1"` で頭文字を抽出
+- JavaScriptで `.artist-block[data-initial]` を絞り込み
+- Bootstrapで見た目も整えられます
+
+---
+
+この一括編集画面で、管理者はアーティスト名とふりがなを効率的に修正できます！  
+次は「CSVインポート」「ジャンル編集」「人気度一括更新」なども追加できます。どれに進めましょう？

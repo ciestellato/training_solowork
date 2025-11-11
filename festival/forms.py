@@ -18,6 +18,14 @@ class ArtistForm(forms.ModelForm):
             'genres': forms.Textarea(attrs={'rows': 2}),
         }
 
+class ArtistBulkEditForm(forms.Form):
+    """アーティストの名前・ふりがなまとめて修正フォーム"""
+    def __init__(self, *args, artists=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        for artist in artists:
+            self.fields[f'name_{artist.id}'] = forms.CharField(initial=artist.name, label='', required=False)
+            self.fields[f'furigana_{artist.id}'] = forms.CharField(initial=artist.furigana, label='', required=False)
+
 class EventDayPerformanceForm(forms.Form):
     """イベント内容・出演者入力フォーム"""
     event = forms.ModelChoiceField(queryset=Event.objects.all(), label='イベント')

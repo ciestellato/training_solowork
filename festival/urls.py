@@ -16,6 +16,8 @@ urlpatterns = [
 
     # アーティスト情報編集
     path('artist/edit/<int:artist_id>/', views.edit_artist, name='edit_artist'),
+    # アーティストふりがな修正
+    path('artist/bulk_edit/', views.edit_artist_bulk, name='edit_artist_bulk'),
 
     # イベント一覧表示
     path('events/', views.event_list, name='event_list'),

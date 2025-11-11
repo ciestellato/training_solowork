@@ -5,7 +5,7 @@ import json
 from datetime import timedelta, datetime
 
 from .models import Artist, Event, EventDay, Performance
-from .forms import EventDayPerformanceForm, ArtistSchedulePasteForm, EventForm, ArtistForm
+from .forms import EventDayPerformanceForm, ArtistSchedulePasteForm, EventForm, ArtistForm, ArtistBulkEditForm
 
 from .spotify import save_artist_from_spotify  # Spotify API連携関数
 from .utils import get_initial_group
@@ -73,6 +73,28 @@ def artist_detail(request, pk):
     return render(request, 'artist_detail.html', {
         'artist': artist,
         'performances': performances,
+    })
+
+@staff_member_required
+def edit_artist_bulk(request):
+    artists = Artist.objects.all()
+    for artist in artists:
+        artist.initial_group = get_initial_group(artist.furigana or artist.name)
+    artists = sorted(artists, key=lambda a: a.initial_group)
+
+    form = ArtistBulkEditForm(request.POST or None, artists=artists)
+
+    if request.method == 'POST' and form.is_valid():
+        for artist in artists:
+            artist.name = form.cleaned_data.get(f'name_{artist.id}', artist.name)
+            artist.furigana = form.cleaned_data.get(f'furigana_{artist.id}', artist.furigana)
+            artist.save()
+        return redirect('festival:artist_list')
+
+    return render(request, 'artist_bulk_edit.html', {
+        'form': form,
+        'artists': artists,
+        'initials': sorted(set(a.initial_group for a in artists)),
     })
 
 def event_list(request):
