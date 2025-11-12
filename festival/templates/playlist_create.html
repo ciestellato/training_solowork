@@ -55,6 +55,13 @@
             </div>
         </div>
 
+        <label for="track_count">1組あたりの保存曲数:</label>
+        <select id="track_count" name="track_count" class="form-select w-auto">
+            {% for i in "123456789" %}
+                <option value="{{ i }}" {% if i == selected_track_count %}selected{% endif %}>{{ i }}</option>
+            {% endfor %}
+        </select>
+
         <button type="submit" class="btn btn-primary">プレイリストを作成する</button>
     </form>
     {% endif %}
@@ -62,23 +69,32 @@
     <!-- 結果表示 -->
     {% if playlist %}
         <hr>
-        <h2 class="mt-4">🎶 プレイリスト</h2>
-        <ul class="list-group">
-            {% for track in playlist %}
-                <li class="list-group-item">
-                    {{ track.name }} - {{ track.artist }}
-                    <a href="{{ track.spotify_url }}" target="_blank" class="btn btn-sm btn-outline-success float-end">Spotifyで聴く</a>
-                </li>
-            {% endfor %}
-        </ul>
+        <h2 class="mt-4">🎶 プレイリスト（{{ track_uris|length }}曲）</h2>
 
-        <!-- Spotify保存ボタン -->
-        <form method="POST" action="{% url 'festival:save_playlist_to_spotify' %}">
-            {% csrf_token %}
-            <input type="hidden" name="track_uris" value="{{ track_uris|join:',' }}">
-            <input type="hidden" name="playlist_name" value="{{ playlist_name }}">
-            <button type="submit" class="btn btn-success mt-4">🎵 Spotifyに保存する</button>
-        </form>
+        {% if not can_save_to_spotify %}
+            <div class="alert alert-warning">
+                ⚠️ Spotifyの保存上限（100曲）を超えています。<br>
+                保存曲数または選択アーティスト数を減らしてください。
+            </div>
+        {% else %}
+
+            <ul class="list-group">
+                {% for track in playlist %}
+                    <li class="list-group-item">
+                        {{ track.name }} - {{ track.artist }}
+                        <a href="{{ track.spotify_url }}" target="_blank" class="btn btn-sm btn-outline-success float-end">Spotifyで聴く</a>
+                    </li>
+                {% endfor %}
+            </ul>
+
+            <!-- Spotify保存ボタン -->
+            <form method="POST" action="{% url 'festival:save_playlist_to_spotify' %}">
+                {% csrf_token %}
+                <input type="hidden" name="track_uris" value="{{ track_uris|join:',' }}">
+                <input type="hidden" name="playlist_name" value="{{ playlist_name }}">
+                <button type="submit" class="btn btn-success mt-4">🎵 Spotifyに保存する</button>
+            </form>
+        {% endif %}
     {% endif %}
 
     <a href="{% url 'festival:event_list' %}" class="btn btn-secondary mt-4">イベント一覧へ戻る</a>

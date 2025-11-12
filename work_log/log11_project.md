@@ -1488,4 +1488,110 @@ Spotify URL → https://open.spotify.com/playlist/xxxxxxxxxxxx
 ---
 
 これで、イベント名と日付を含んだプレイリスト名が自動生成され、Spotifyに保存されるようになります！  
-次はプレイリストの説明文や公開設定のカスタマイズに進みましょうか？それともテンプレートでプレイリスト名を表示するUI改善にしますか？
+
+Spotifyのプレイリスト保存上限（100曲）を考慮して、保存曲数とアーティスト数の組み合わせを制限するのは非常にユーザーフレンドリーです。  
+以下のように、**保存曲数のプルダウンメニュー＋保存ボタンの表示制御＋警告メッセージ**を実装できます。
+
+---
+
+## ✅ ステップ1：保存曲数のプルダウンメニューを追加
+
+### 🎨 テンプレート（`playlist_create.html`）
+
+```html
+<form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+
+    <label for="track_count">1組あたりの保存曲数:</label>
+    <select id="track_count" name="track_count" class="form-select w-auto">
+        {% for i in "12345678910" %}
+            <option value="{{ i }}" {% if i == selected_track_count %}selected{% endif %}>{{ i }}</option>
+        {% endfor %}
+    </select>
+
+    <button type="submit" class="btn btn-primary mt-3">プレイリストを生成</button>
+</form>
+```
+
+---
+
+## ✅ ステップ2：ビューで保存曲数を受け取る
+
+### 🧠 `create_playlist_view` の更新
+
+```python
+track_count = int(request.POST.get("track_count", 1))
+selected_artists = form.cleaned_data['artists']
+total_tracks = len(selected_artists) * track_count
+
+# Spotify保存制限チェック
+can_save_to_spotify = total_tracks <= 100
+
+# プレイリスト構築
+for artist in selected_artists:
+    tracks = get_top_tracks(artist.spotify_id)
+    for track in tracks[:track_count]:
+        playlist.append({
+            'name': track['name'],
+            'artist': artist.name,
+            'spotify_url': track['spotify_url'],
+            'uri': track['uri']
+        })
+        track_uris.append(track['uri'])
+```
+
+---
+
+## ✅ ステップ3：テンプレートで保存ボタンの表示制御
+
+```html
+{% if playlist %}
+    <hr>
+    <h2 class="mt-4">🎶 プレイリスト（{{ track_uris|length }}曲）</h2>
+
+    {% if not can_save_to_spotify %}
+        <div class="alert alert-warning">
+            ⚠️ Spotifyの保存上限（100曲）を超えています。<br>
+            保存曲数または選択アーティスト数を減らしてください。
+        </div>
+    {% else %}
+        <form method="POST" action="{% url 'save_playlist_to_spotify' %}">
+            {% csrf_token %}
+            <input type="hidden" name="track_uris" value="{{ track_uris|join:',' }}">
+            <input type="hidden" name="playlist_name" value="{{ playlist_name }}">
+            <button type="submit" class="btn btn-success mt-3">🎵 Spotifyに保存する</button>
+        </form>
+    {% endif %}
+{% endif %}
+```
+
+---
+
+## ✅ ステップ4：ビューからテンプレートに渡す変数
+
+```python
+return render(request, 'playlist_create.html', {
+    'form': form,
+    'playlist': playlist,
+    'track_uris': track_uris,
+    'event_days': event_days,
+    'selected_day_id': selected_day_id,
+    'playlist_name': playlist_name,
+    'selected_track_count': str(track_count),
+    'can_save_to_spotify': can_save_to_spotify
+})
+```
+
+---
+
+## 🔚 これでできること
+
+- ユーザーが保存曲数を選択できる
+- 曲数×アーティスト数が100を超えると保存ボタンが非表示
+- 警告メッセージで調整を促す
+
+---
+
+この機能が入ると、Spotify保存の失敗を未然に防げて、UXがさらに洗練されます！  
+次は保存曲数のデフォルト値や、保存可能な曲数のリアルタイム表示なども追加できますよ。どうしましょう？

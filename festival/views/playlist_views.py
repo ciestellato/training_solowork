@@ -13,11 +13,13 @@ from festival.utils.spotify_utils import get_top_tracks
 
 def create_playlist_view(request):
     """出演アーティストを選択してSpotifyプレイリストを生成するビュー"""
-
+    # 初期化
     selected_day_id = request.GET.get('event_day')
     selected_day = EventDay.objects.filter(id=selected_day_id).first()
     playlist = []
     track_uris = []
+    track_count = 1
+    can_save_to_spotify = True
 
     # 出演アーティスト一覧（チェックボックス表示用）
     artists_qs = Artist.objects.filter(performance__event_day=selected_day).distinct() if selected_day else Artist.objects.none()
@@ -25,10 +27,16 @@ def create_playlist_view(request):
     if request.method == 'POST':
         form = PlaylistForm(request.POST, artists_queryset=artists_qs)
         if form.is_valid():
+            track_count = int(request.POST.get("track_count", 1))
             selected_artists = form.cleaned_data['artists']
+            total_tracks = len(selected_artists) * track_count
+
+            # Spotify保存制限チェック
+            can_save_to_spotify = total_tracks <= 100
+
             for artist in selected_artists:
                 tracks = get_top_tracks(artist.spotify_id)
-                for track in tracks[:5]:  # 代表曲5曲使う
+                for track in tracks[:track_count]:
                     playlist.append({
                         'name': track['name'],
                         'artist': artist.name,
@@ -54,7 +62,9 @@ def create_playlist_view(request):
         'track_uris': track_uris,
         'event_days': event_days,
         'selected_day_id': selected_day_id,
-        'playlist_name': playlist_name
+        'playlist_name': playlist_name,
+        'selected_track_count': str(track_count),
+        'can_save_to_spotify': can_save_to_spotify
     })
 
 def save_playlist_to_spotify_view(request):
