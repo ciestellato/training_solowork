@@ -59,12 +59,11 @@ def save_playlist_to_spotify_view(request):
         if token and track_uris:
             playlist_url = save_playlist_to_spotify(token, track_uris)
             if playlist_url:
-                messages.success(request, f"Spotifyに保存しました！ → {playlist_url}")
-                return redirect("festival:create_playlist")
+                messages.success(request, f"✅ Spotifyに保存しました！<br><a href='{playlist_url}' target='_blank'>プレイリストを開く</a>")
             else:
-                messages.error(request, "Spotifyへの保存に失敗しました")
+                messages.error(request, "❌ Spotifyへの保存に失敗しました")
         else:
-            messages.error(request, "Spotify認証が必要です")
+            messages.error(request, "⚠️ Spotify認証が必要です")
             return redirect("festival:spotify_login")
 
     return redirect("festival:create_playlist")

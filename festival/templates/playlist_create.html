@@ -7,7 +7,14 @@
 </head>
 <body class="container mt-4">
     <h1>🎧 プレイリスト作成</h1>
-
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} mt-3" role="alert">
+                {{ message|safe }}
+            </div>
+        {% endfor %}
+    {% endif %}
+    
     <!-- イベント日程選択（GET） -->
     <form method="GET" class="mb-4">
         <label for="event_day" class="form-label">イベント日程を選択</label>
