@@ -133,10 +133,10 @@ def get_user_token(request):
     request.session["spotify_token"] = token_info["access_token"]
     return token_info["access_token"]
 
-def save_playlist_to_spotify(user_token, track_uris, playlist_name="Festival Forecast プレイリスト"):
+def save_playlist_to_spotify(user_token, track_uris, playlist_name="フェス予習プレイリスト"):
     """Spotify上にプレイリストを作成し、楽曲を追加する"""
-    print("🎧 Saving playlist to Spotify...")
-    print("Track URIs:", track_uris)
+    # print("🎧 Saving playlist to Spotify...")
+    # print("Track URIs:", track_uris)
 
     headers = {"Authorization": f"Bearer {user_token}"}
 
@@ -152,7 +152,7 @@ def save_playlist_to_spotify(user_token, track_uris, playlist_name="Festival For
         return None
 
     # ユーザー情報取得ログ
-    print("User info status:", user_res.status_code, user_res.text)
+    # print("User info status:", user_res.status_code, user_res.text)
 
     # 2. プレイリスト作成
     create_res = requests.post(
@@ -174,7 +174,7 @@ def save_playlist_to_spotify(user_token, track_uris, playlist_name="Festival For
         return None
 
     # プレイリスト作成ログ
-    print("Playlist create status:", create_res.status_code, create_res.text)
+    # print("Playlist create status:", create_res.status_code, create_res.text)
 
     # 3. 楽曲追加（最大100件まで）
     add_res = requests.post(
@@ -186,7 +186,7 @@ def save_playlist_to_spotify(user_token, track_uris, playlist_name="Festival For
         print(f"楽曲追加失敗: {add_res.status_code} - {add_res.text}")
         return None
     # 楽曲追加ログ
-    print("Track add status:", add_res.status_code, add_res.text)
+    # print("Track add status:", add_res.status_code, add_res.text)
 
     # 4. プレイリストURLを返す
     return create_res.json().get("external_urls", {}).get("spotify")

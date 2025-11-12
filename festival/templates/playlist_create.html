@@ -14,7 +14,7 @@
             </div>
         {% endfor %}
     {% endif %}
-    
+
     <!-- イベント日程選択（GET） -->
     <form method="GET" class="mb-4">
         <label for="event_day" class="form-label">イベント日程を選択</label>
@@ -76,6 +76,7 @@
         <form method="POST" action="{% url 'festival:save_playlist_to_spotify' %}">
             {% csrf_token %}
             <input type="hidden" name="track_uris" value="{{ track_uris|join:',' }}">
+            <input type="hidden" name="playlist_name" value="{{ playlist_name }}">
             <button type="submit" class="btn btn-success mt-4">🎵 Spotifyに保存する</button>
         </form>
     {% endif %}

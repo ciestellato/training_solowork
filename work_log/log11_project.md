@@ -1336,5 +1336,156 @@ print("Track add status:", add_res.status_code, add_res.text)
 {% endif %}
 ```
 
-この機能が完成すれば、ユーザー体験はかなり本格的になります！  
-次はUIの微調整や、プレイリスト名のカスタマイズに進みましょうか？
+よかったです！Spotifyにプレイリストが無事保存されていたとのこと、本当に素晴らしい進展ですね👏  
+キャッシュや非公開設定が原因で表示が遅れることはよくあるので、今回のようにログとURLで確認できたのは大正解です。
+
+---
+
+## ✅ 保存成功時のメッセージ表示方法
+
+Djangoでは、保存処理のビューで `messages.success()` を使ってテンプレートにメッセージを渡すことができます。
+
+---
+
+### 🧠 ビュー側の実装（`save_playlist_to_spotify_view`）
+
+```python
+from django.contrib import messages
+
+def save_playlist_to_spotify_view(request):
+    if request.method == 'POST':
+        token = request.session.get("spotify_token")
+        track_uris = request.POST.get("track_uris", "").split(",")
+
+        if token and track_uris:
+            playlist_url = save_playlist_to_spotify(token, track_uris)
+            if playlist_url:
+                messages.success(request, f"✅ Spotifyに保存しました！<br><a href='{playlist_url}' target='_blank'>プレイリストを開く</a>")
+            else:
+                messages.error(request, "❌ Spotifyへの保存に失敗しました")
+        else:
+            messages.error(request, "⚠️ Spotify認証が必要です")
+            return redirect("spotify_login")
+
+    return redirect("create_playlist")
+```
+
+---
+
+### 🎨 テンプレート側の表示（`playlist_create.html`）
+
+```html
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} mt-3" role="alert">
+            {{ message|safe }}
+        </div>
+    {% endfor %}
+{% endif %}
+```
+
+- `message|safe` によって、HTMLタグ（リンクなど）をそのまま表示できます。
+- `alert-success` や `alert-error` などのBootstrapクラスが自動で付与されます。
+
+---
+
+## ✅ 表示例（保存成功時）
+
+```html
+✅ Spotifyに保存しました！
+▶️ <a href="https://open.spotify.com/playlist/3laDO8UUgypexIJRs40Eug" target="_blank">プレイリストを開く</a>
+```
+
+---
+
+## 🔜 次のステップ
+
+- 保存失敗時のエラーメッセージも同様に表示
+- プレイリスト名や説明をカスタマイズできるようにする
+- 保存済みプレイリストを一覧表示する機能を追加する
+
+---
+
+このメッセージ表示があると、ユーザーにとって安心感がグッと高まりますね！  
+次はプレイリスト名のカスタマイズや、保存済み一覧の表示に進みましょうか？
+いいですね！「CDJ25/26 20251230 予習リスト」のようなプレイリスト名は、イベント名と日付が明確に入っていてとても分かりやすいです。  
+以下のように、プレイリスト名をカスタマイズできるように `save_playlist_to_spotify()` を拡張しましょう。
+
+---
+
+## ✅ ステップ1：ビューからイベント名と日付を渡す
+
+まず、`create_playlist_view` で選択されたイベント名と日付を取得して、保存ビューに渡します。
+
+### 🎯 例（`playlist_views.py`）
+
+```python
+event_day = EventDay.objects.select_related('event').filter(id=selected_day_id).first()
+event_name = event_day.event.name if event_day else "Festival"
+event_date = event_day.date.strftime("%Y%m%d") if event_day else "Unknown"
+
+playlist_name = f"{event_name} {event_date} 予習リスト"
+```
+
+この `playlist_name` をテンプレートに渡して、`<input type="hidden">` でPOST送信します。
+
+---
+
+## ✅ ステップ2：テンプレートにプレイリスト名を埋め込む
+
+### 🎨 例（`playlist_create.html`）
+
+```html
+<form method="POST" action="{% url 'save_playlist_to_spotify' %}">
+    {% csrf_token %}
+    <input type="hidden" name="track_uris" value="{{ track_uris|join:',' }}">
+    <input type="hidden" name="playlist_name" value="{{ playlist_name }}">
+    <button type="submit" class="btn btn-success mt-4">🎵 Spotifyに保存する</button>
+</form>
+```
+
+---
+
+## ✅ ステップ3：保存ビューで受け取って渡す
+
+### 🧠 例（`save_playlist_to_spotify_view`）
+
+```python
+playlist_name = request.POST.get("playlist_name", "Festival Forecast プレイリスト")
+playlist_url = save_playlist_to_spotify(token, track_uris, playlist_name)
+```
+
+---
+
+## ✅ ステップ4：`save_playlist_to_spotify()` に渡す
+
+関数定義を以下のように変更：
+
+```python
+def save_playlist_to_spotify(user_token, track_uris, playlist_name="Festival Forecast プレイリスト"):
+    ...
+    create_res = requests.post(
+        f"https://api.spotify.com/v1/users/{user_id}/playlists",
+        headers=headers,
+        json={
+            "name": playlist_name,
+            "description": "イベント出演アーティストの代表曲まとめ",
+            "public": False
+        }
+    )
+    ...
+```
+
+---
+
+## 🔚 出力例
+
+```text
+プレイリスト名 → CDJ25/26 20251230 予習リスト
+Spotify URL → https://open.spotify.com/playlist/xxxxxxxxxxxx
+```
+
+---
+
+これで、イベント名と日付を含んだプレイリスト名が自動生成され、Spotifyに保存されるようになります！  
+次はプレイリストの説明文や公開設定のカスタマイズに進みましょうか？それともテンプレートでプレイリスト名を表示するUI改善にしますか？

@@ -42,12 +42,19 @@ def create_playlist_view(request):
     # イベント日程一覧（セレクトボックス用）
     event_days = EventDay.objects.select_related('event').order_by('date')
 
+    event_day = EventDay.objects.select_related('event').filter(id=selected_day_id).first()
+    event_name = event_day.event.name if event_day else "Festival"
+    event_date = event_day.date.strftime("%Y%m%d") if event_day else "Unknown"
+
+    playlist_name = f"{event_name} {event_date} 予習リスト"
+    
     return render(request, 'playlist_create.html', {
         'form': form,
         'playlist': playlist,
         'track_uris': track_uris,
         'event_days': event_days,
-        'selected_day_id': selected_day_id
+        'selected_day_id': selected_day_id,
+        'playlist_name': playlist_name
     })
 
 def save_playlist_to_spotify_view(request):
@@ -55,9 +62,10 @@ def save_playlist_to_spotify_view(request):
     if request.method == 'POST':
         token = request.session.get("spotify_token")
         track_uris = request.POST.get("track_uris", "").split(",")
+        playlist_name = request.POST.get("playlist_name", "フェス予習プレイリスト")
 
         if token and track_uris:
-            playlist_url = save_playlist_to_spotify(token, track_uris)
+            playlist_url = save_playlist_to_spotify(token, track_uris, playlist_name)
             if playlist_url:
                 messages.success(request, f"✅ Spotifyに保存しました！<br><a href='{playlist_url}' target='_blank'>プレイリストを開く</a>")
             else:
