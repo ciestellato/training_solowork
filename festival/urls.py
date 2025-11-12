@@ -14,7 +14,8 @@ from .views.performance_views import (
     edit_event_day_performances,
     paste_schedule_register
 )
-from .views.playlist_views import create_playlist_view
+from .views.playlist_views import create_playlist_view, save_playlist_to_spotify_view
+from .views.spotify_auth_views import spotify_login_view, spotify_callback_view
 
 app_name = 'festival'
 
@@ -43,5 +44,11 @@ urlpatterns = [
     path('tour/register/', paste_schedule_register, name='paste_schedule_register'),
 
     # プレイリスト関連
-    path('playlist/create/', create_playlist_view, name='create_playlist')
+    path('playlist/create/', create_playlist_view, name='create_playlist'),
+    path('playlist/save/', save_playlist_to_spotify_view, name='save_playlist_to_spotify'),
+
+    # Spotify認証関連
+    path('spotify/login/', spotify_login_view, name='spotify_login'),
+    path('spotify/callback/', spotify_callback_view, name='spotify_callback'),
+
 ]

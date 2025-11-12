@@ -415,4 +415,926 @@ form = PlaylistForm(request.POST or None, artists_queryset=artists_qs)
 
 ---
 
-これで、プレイリスト作成機能のフォーム部分が完成です！次はテンプレートの調整や、Spotifyリンクの表示スタイルを整える段階に進めましょうか？
+**Spotify APIを使えば取得した楽曲をSpotify上のプレイリストとして保存できます。ただし、ユーザー認証（OAuth）が必要です。**
+
+---
+
+## ✅ 必要なステップ（概要）
+
+Spotifyにプレイリストを保存するには、以下の手順が必要です：
+
+### 1. **Spotify OAuth 認証（Authorization Code Flow）**
+- ユーザーのSpotifyアカウントにアクセスするために、OAuth認証が必要です。
+- 必要なスコープ：
+  - `playlist-modify-public`（公開プレイリスト作成）
+  - `playlist-modify-private`（非公開プレイリスト作成）
+
+### 2. **プレイリストの作成**
+- エンドポイント：`POST https://api.spotify.com/v1/users/{user_id}/playlists`
+- リクエストボディ例：
+
+```json
+{
+  "name": "Festival Forecast プレイリスト",
+  "description": "イベント出演アーティストの代表曲まとめ",
+  "public": false
+}
+```
+
+### 3. **楽曲の追加**
+- エンドポイント：`POST https://api.spotify.com/v1/playlists/{playlist_id}/tracks`
+- リクエストボディに `uris`（Spotify URIの配列）を渡します：
+
+```json
+{
+  "uris": [
+    "spotify:track:xxxxxx",
+    "spotify:track:yyyyyy"
+  ]
+}
+```
+
+---
+
+## 🧩 Djangoでの実装ポイント
+
+### 🔐 認証処理（例：`spotify_auth.py`）
+```python
+from spotipy.oauth2 import SpotifyOAuth
+
+sp_oauth = SpotifyOAuth(
+    client_id=SPOTIFY_CLIENT_ID,
+    client_secret=SPOTIFY_CLIENT_SECRET,
+    redirect_uri="http://localhost:8000/callback/",
+    scope="playlist-modify-public playlist-modify-private"
+)
+```
+
+### 🧠 プレイリスト保存関数（例：`save_playlist_to_spotify()`）
+```python
+def save_playlist_to_spotify(user_token, track_uris, playlist_name="Festival Playlist"):
+    headers = {"Authorization": f"Bearer {user_token}"}
+    
+    # ユーザー情報取得
+    user_res = requests.get("https://api.spotify.com/v1/me", headers=headers)
+    user_id = user_res.json()["id"]
+
+    # プレイリスト作成
+    create_res = requests.post(
+        f"https://api.spotify.com/v1/users/{user_id}/playlists",
+        headers=headers,
+        json={"name": playlist_name, "public": False}
+    )
+    playlist_id = create_res.json()["id"]
+
+    # 楽曲追加
+    requests.post(
+        f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks",
+        headers=headers,
+        json={"uris": track_uris}
+    )
+
+    return playlist_id
+```
+
+---
+
+## 🧪 注意点
+
+- 認証トークンはユーザーごとに取得・保存が必要です（セッションやDBに保持）。
+- 楽曲URIは `track['uri']` で取得できます（`spotify_url` ではなく）。
+- Spotify APIの制限により、最大100曲ずつ追加可能です。
+
+---
+
+## 🔜 次のステップ
+
+1. `get_top_tracks()` を拡張して `track['uri']` を含める
+2. 認証フローを導入（ログイン→トークン取得）
+3. 「Spotifyに保存」ボタンを追加し、保存処理を呼び出す
+
+---
+
+Spotify APIを使って、取得した楽曲をSpotify上のプレイリストとして保存する方法について、最新情報をもとに詳しくご案内します。
+
+---
+
+## ✅ Spotify上にプレイリストを保存する方法
+
+SpotifyのWeb APIでは、以下の手順でプレイリストを作成・保存できます：
+
+### 1. 🔐 ユーザー認証（Authorization Code Flow）
+Spotify上にプレイリストを保存するには、**ユーザーの認証トークン**が必要です。  
+このためには、以下のスコープを含むOAuth認証が必要です：
+
+- `playlist-modify-public`
+- `playlist-modify-private`
+
+Djangoでの実装には、`spotipy` ライブラリを使うと便利です。
+
+### 2. 📦 プレイリストの作成
+エンドポイント：
+```
+POST https://api.spotify.com/v1/users/{user_id}/playlists
+```
+
+リクエスト例：
+```json
+{
+  "name": "Festival Forecast プレイリスト",
+  "description": "イベント出演アーティストの代表曲まとめ",
+  "public": false
+}
+```
+
+### 3. 🎶 楽曲の追加
+エンドポイント：
+```
+POST https://api.spotify.com/v1/playlists/{playlist_id}/tracks
+```
+
+リクエスト例：
+```json
+{
+  "uris": [
+    "spotify:track:1abcXYZ...",
+    "spotify:track:2defXYZ..."
+  ]
+}
+```
+
+---
+
+## 🧩 Djangoでの実装例（概要）
+
+### 1. 認証フローの導入（例：`spotify_auth.py`）
+```python
+from spotipy.oauth2 import SpotifyOAuth
+
+sp_oauth = SpotifyOAuth(
+    client_id=SPOTIFY_CLIENT_ID,
+    client_secret=SPOTIFY_CLIENT_SECRET,
+    redirect_uri="http://localhost:8000/callback/",
+    scope="playlist-modify-public playlist-modify-private"
+)
+```
+
+### 2. プレイリスト保存関数（例：`save_playlist_to_spotify()`）
+```python
+def save_playlist_to_spotify(user_token, track_uris, playlist_name="Festival Playlist"):
+    headers = {"Authorization": f"Bearer {user_token}"}
+
+    # ユーザーID取得
+    user_res = requests.get("https://api.spotify.com/v1/me", headers=headers)
+    user_id = user_res.json()["id"]
+
+    # プレイリスト作成
+    create_res = requests.post(
+        f"https://api.spotify.com/v1/users/{user_id}/playlists",
+        headers=headers,
+        json={"name": playlist_name, "public": False}
+    )
+    playlist_id = create_res.json()["id"]
+
+    # 楽曲追加
+    requests.post(
+        f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks",
+        headers=headers,
+        json={"uris": track_uris}
+    )
+
+    return playlist_id
+```
+
+---
+
+## 🔜 次のステップ
+
+1. `get_top_tracks()` に `track['uri']` を含めるよう拡張
+2. 認証フローの導入（ユーザーログイン→トークン取得）
+3. 「Spotifyに保存」ボタンをテンプレートに追加
+4. 保存成功後、SpotifyプレイリストURLを表示
+
+---
+
+この機能を導入すれば、ユーザーがイベント出演者の楽曲を自分のSpotifyアカウントに保存できるようになります。  
+必要であれば、Spotify認証フローのDjango実装をステップバイステップでご案内します！
+
+とても良い質問です！  
+結論から言うと、**従前の `get_spotify_token()` を使った関数群は「クライアント認証（Client Credentials Flow）」に基づいているため、Spotify上にプレイリストを保存する用途には使えません**。
+
+---
+
+## 🔍 なぜ使えないのか？
+
+### 🎫 現在の認証方式：Client Credentials Flow
+- `get_spotify_token()` はアプリケーション単位の認証です。
+- このトークンでは **ユーザーのSpotifyアカウントにアクセスできません**。
+- つまり、プレイリストの作成・保存・ユーザーのライブラリ操作は不可。
+
+### ✅ 必要な認証方式：Authorization Code Flow
+- Spotifyのプレイリスト保存には、**ユーザーの明示的な認可**が必要です。
+- このフローでは、ユーザーがSpotifyにログインし、アプリに権限を与える必要があります。
+- 得られるトークンは、ユーザーのアカウントに紐づいており、プレイリスト作成・保存が可能です。
+
+---
+
+## 🧭 どうすればいい？
+
+### 🔧 認証フローの切り替え
+1. `get_spotify_token()` を `get_app_token()` に改名し、アーティスト検索やトップトラック取得など「読み取り専用API」に限定して使う。
+2. プレイリスト保存用には、**Authorization Code Flow** を別途実装する（例：`get_user_token()`）。
+
+### 🧠 実装の分離イメージ
+
+```python
+# utils/spotify_utils.py
+
+def get_app_token():
+    """アプリ用トークン（読み取り専用）"""
+    ...
+
+def get_user_token(request):
+    """ユーザー認証トークン（プレイリスト保存用）"""
+    # Authorization Code Flow を使って request.session などに保存
+    ...
+```
+
+---
+
+## 🔐 Spotifyのスコープ（必要な権限）
+
+```text
+playlist-modify-public
+playlist-modify-private
+```
+
+これらを含めて認証URLを生成し、ユーザーにログインしてもらう必要があります。
+
+---
+
+## ✅ まとめ
+
+| 処理内容                     | 認証方式               | 使用可能 |
+|------------------------------|------------------------|-----------|
+| アーティスト検索・楽曲取得     | Client Credentials Flow | ✅ 可能     |
+| プレイリスト作成・保存         | Authorization Code Flow | ❌ 不可（現状）→ ✅ 実装すれば可能 |
+
+---
+
+素晴らしいです！では、Spotifyの**Authorization Code Flow**を使って、Djangoで `get_user_token(request)` を定義する方法をご案内します。
+
+---
+
+## ✅ 目的
+
+`get_user_token(request)` は、Spotifyユーザーのアクセストークンを取得する関数です。  
+このトークンを使えば、ユーザーのSpotifyアカウントにプレイリストを保存できます。
+
+---
+
+## 🧩 必要な準備
+
+### 1. 必要なライブラリ
+```bash
+pip install spotipy
+```
+
+### 2. settings.py に追加
+```python
+SPOTIFY_CLIENT_ID = 'your_client_id'
+SPOTIFY_CLIENT_SECRET = 'your_client_secret'
+SPOTIFY_REDIRECT_URI = 'http://localhost:8000/spotify/callback/'
+SPOTIFY_SCOPE = 'playlist-modify-public playlist-modify-private'
+```
+
+---
+
+## 🧠 `get_user_token(request)` の定義例
+
+```python
+from spotipy.oauth2 import SpotifyOAuth
+from django.conf import settings
+
+def get_user_token(request):
+    """Spotifyユーザー認証トークンを取得（Authorization Code Flow）"""
+
+    sp_oauth = SpotifyOAuth(
+        client_id=settings.SPOTIFY_CLIENT_ID,
+        client_secret=settings.SPOTIFY_CLIENT_SECRET,
+        redirect_uri=settings.SPOTIFY_REDIRECT_URI,
+        scope=settings.SPOTIFY_SCOPE,
+        cache_path=f".cache-{request.session.session_key}"
+    )
+
+    # 認証コードがまだない場合 → 認証URLへリダイレクト
+    if not request.GET.get("code"):
+        auth_url = sp_oauth.get_authorize_url()
+        return auth_url  # 呼び出し元で redirect する
+
+    # 認証コードがある場合 → トークン取得
+    code = request.GET.get("code")
+    token_info = sp_oauth.get_access_token(code)
+
+    # セッションに保存して再利用可能に
+    request.session["spotify_token"] = token_info["access_token"]
+    return token_info["access_token"]
+```
+
+---
+
+## 🔁 認証フローの流れ
+
+1. ユーザーが「Spotifyに保存」ボタンを押す
+2. `get_user_token(request)` を呼び出し、認証URLにリダイレクト
+3. Spotifyでログイン → `code` が返る
+4. `get_user_token()` がトークンを取得し、セッションに保存
+5. 以降は `request.session["spotify_token"]` を使ってAPI呼び出し可能
+
+---
+
+## 🔜 次のステップ
+
+- 認証用のビュー（例：`spotify_login_view`）を作成
+- コールバックURL（`/spotify/callback/`）にルーティング追加
+- トークン取得後に `save_playlist_to_spotify()` を呼び出してプレイリスト保存
+
+---
+
+以下は、SpotifyのAuthorization Code Flowを使った**認証用ビュー（ログイン → トークン取得 → セッション保存）**の実装例です。
+
+---
+
+## 🎧 認証用ビューの構成（2ステップ）
+
+### 1. `spotify_login_view`  
+Spotifyの認証ページにリダイレクトします。
+
+### 2. `spotify_callback_view`  
+Spotifyから返された認証コードを使ってアクセストークンを取得し、セッションに保存します。
+
+---
+
+## 🧾 認証ビューの実装例（`views/spotify_auth_views.py`）
+
+```python
+from django.shortcuts import redirect
+from django.conf import settings
+from spotipy.oauth2 import SpotifyOAuth
+
+def spotify_login_view(request):
+    """Spotify認証ページにリダイレクトするビュー"""
+    sp_oauth = SpotifyOAuth(
+        client_id=settings.SPOTIFY_CLIENT_ID,
+        client_secret=settings.SPOTIFY_CLIENT_SECRET,
+        redirect_uri=settings.SPOTIFY_REDIRECT_URI,
+        scope=settings.SPOTIFY_SCOPE,
+        cache_path=f".cache-{request.session.session_key}"
+    )
+    auth_url = sp_oauth.get_authorize_url()
+    return redirect(auth_url)
+
+
+def spotify_callback_view(request):
+    """Spotify認証後のコールバック処理ビュー"""
+    sp_oauth = SpotifyOAuth(
+        client_id=settings.SPOTIFY_CLIENT_ID,
+        client_secret=settings.SPOTIFY_CLIENT_SECRET,
+        redirect_uri=settings.SPOTIFY_REDIRECT_URI,
+        scope=settings.SPOTIFY_SCOPE,
+        cache_path=f".cache-{request.session.session_key}"
+    )
+
+    code = request.GET.get("code")
+    token_info = sp_oauth.get_access_token(code)
+    access_token = token_info.get("access_token")
+
+    if access_token:
+        request.session["spotify_token"] = access_token
+        return redirect("create_playlist")  # プレイリスト作成画面へ戻る
+    else:
+        return redirect("error_page")  # エラー処理ビューへ（任意）
+```
+
+---
+
+## 🔗 `urls.py` のルーティング追加
+
+```python
+from django.urls import path
+from festival.views.spotify_auth_views import spotify_login_view, spotify_callback_view
+
+urlpatterns = [
+    path('spotify/login/', spotify_login_view, name='spotify_login'),
+    path('spotify/callback/', spotify_callback_view, name='spotify_callback'),
+]
+```
+
+---
+
+## ✅ 認証後の使い方
+
+プレイリスト保存処理で以下のようにトークンを取得できます：
+
+```python
+token = request.session.get("spotify_token")
+if token:
+    save_playlist_to_spotify(token, track_uris)
+```
+
+---
+
+## 🔜 次のステップ
+
+- `save_playlist_to_spotify()` を定義して、Spotifyにプレイリストを作成・保存
+- プレイリスト作成画面に「Spotifyに保存」ボタンを追加
+- トークンの有効期限管理（必要なら `refresh_token` 対応）
+
+---
+
+了解しました！  
+次は、Spotifyにプレイリストを保存する処理を実装する関数 `save_playlist_to_spotify()` をご提案します。
+
+---
+
+## 🎧 `save_playlist_to_spotify()` の定義例
+
+この関数は、ユーザーのアクセストークンと楽曲URIのリストを受け取り、Spotify上にプレイリストを作成して楽曲を追加します。
+
+```python
+import requests
+
+def save_playlist_to_spotify(user_token, track_uris, playlist_name="Festival Forecast プレイリスト"):
+    """Spotify上にプレイリストを作成し、楽曲を追加する"""
+
+    headers = {"Authorization": f"Bearer {user_token}"}
+
+    # 1. ユーザー情報取得
+    user_res = requests.get("https://api.spotify.com/v1/me", headers=headers)
+    if user_res.status_code != 200:
+        print(f"ユーザー情報取得失敗: {user_res.status_code} - {user_res.text}")
+        return None
+
+    user_id = user_res.json().get("id")
+    if not user_id:
+        print("ユーザーIDが取得できませんでした")
+        return None
+
+    # 2. プレイリスト作成
+    create_res = requests.post(
+        f"https://api.spotify.com/v1/users/{user_id}/playlists",
+        headers=headers,
+        json={
+            "name": playlist_name,
+            "description": "イベント出演アーティストの代表曲まとめ",
+            "public": False
+        }
+    )
+    if create_res.status_code != 201:
+        print(f"プレイリスト作成失敗: {create_res.status_code} - {create_res.text}")
+        return None
+
+    playlist_id = create_res.json().get("id")
+    if not playlist_id:
+        print("プレイリストIDが取得できませんでした")
+        return None
+
+    # 3. 楽曲追加（最大100件まで）
+    add_res = requests.post(
+        f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks",
+        headers=headers,
+        json={"uris": track_uris}
+    )
+    if add_res.status_code != 201:
+        print(f"楽曲追加失敗: {add_res.status_code} - {add_res.text}")
+        return None
+
+    # 4. プレイリストURLを返す
+    return create_res.json().get("external_urls", {}).get("spotify")
+```
+
+---
+
+## ✅ 使用例（ビュー内）
+
+```python
+token = request.session.get("spotify_token")
+track_uris = [track["uri"] for track in playlist]  # uriを事前に取得しておく
+
+if token and track_uris:
+    playlist_url = save_playlist_to_spotify(token, track_uris)
+    if playlist_url:
+        messages.success(request, f"Spotifyにプレイリストを保存しました！ → {playlist_url}")
+```
+
+---
+
+## 🔜 次のステップ
+
+- `get_top_tracks()` を拡張して `track['uri']` を含める
+- プレイリスト作成テンプレートに「Spotifyに保存」ボタンを追加
+- 保存成功後にリンクを表示
+
+---
+
+この関数があれば、ユーザーが自分のSpotifyアカウントにプレイリストを直接保存できるようになります！  
+
+次のステップは、テンプレートに「Spotifyに保存」ボタンを追加し、保存処理を呼び出す流れを作ることです。
+
+---
+
+## 🎨 テンプレートへのボタン追加（`playlist_create.html`）
+
+以下のように、プレイリストが生成された後に「Spotifyに保存」ボタンを表示します。
+
+```html
+{% if playlist %}
+    <hr>
+    <h2 class="mt-4">🎶 プレイリスト</h2>
+    <ul class="list-group">
+        {% for track in playlist %}
+            <li class="list-group-item">
+                {{ track.name }} - {{ track.artist }}
+                <a href="{{ track.spotify_url }}" target="_blank" class="btn btn-sm btn-outline-success float-end">Spotifyで聴く</a>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <!-- Spotify保存ボタン -->
+    <form method="POST" action="{% url 'save_playlist_to_spotify' %}">
+        {% csrf_token %}
+        <input type="hidden" name="track_uris" value="{{ track_uris|join:',' }}">
+        <button type="submit" class="btn btn-success mt-3">Spotifyに保存する</button>
+    </form>
+{% endif %}
+```
+
+---
+
+## 🧠 ビューの追加（`playlist_views.py`）
+
+Spotify保存用のビューを追加します：
+
+```python
+from django.shortcuts import redirect
+from django.contrib import messages
+from festival.utils.spotify_utils import save_playlist_to_spotify
+
+def save_playlist_to_spotify_view(request):
+    """Spotifyにプレイリストを保存するビュー"""
+    if request.method == 'POST':
+        token = request.session.get("spotify_token")
+        track_uris = request.POST.get("track_uris", "").split(",")
+
+        if token and track_uris:
+            playlist_url = save_playlist_to_spotify(token, track_uris)
+            if playlist_url:
+                messages.success(request, f"Spotifyに保存しました！ → {playlist_url}")
+                return redirect("create_playlist")
+            else:
+                messages.error(request, "Spotifyへの保存に失敗しました")
+        else:
+            messages.error(request, "Spotify認証が必要です")
+            return redirect("spotify_login")
+
+    return redirect("create_playlist")
+```
+
+---
+
+## 🔗 `urls.py` にルーティング追加
+
+```python
+from festival.views.playlist_views import save_playlist_to_spotify_view
+
+urlpatterns = [
+    path('playlist/save/', save_playlist_to_spotify_view, name='save_playlist_to_spotify'),
+]
+```
+
+---
+
+## ✅ 補足
+
+- `track_uris` は `get_top_tracks()` の中で `track['uri']` を含めるようにしておく必要があります。
+- 認証されていない場合は `spotify_login` にリダイレクトすることで、ログイン→保存の流れが自然になります。
+
+---
+
+次は `get_top_tracks()` に `uri` を含める拡張をしましょうか？それとも保存後の確認画面やUI改善に進みますか？
+Spotifyのプレイリスト保存に必要な `track['uri']` を取得できるように、`get_top_tracks()` 関数を拡張しましょう。
+
+---
+
+## 🎧 `get_top_tracks()` の拡張版（`spotify_utils.py`）
+
+以下のように、各トラックの `uri` を含めて返すように変更します：
+
+```python
+def get_top_tracks(spotify_id, market='JP'):
+    """
+    指定されたSpotifyアーティストIDからトップトラック（代表曲）を取得する。
+    各トラックに name, artist, spotify_url, uri を含めて返す。
+    """
+    token = get_spotify_token()
+    if not token:
+        return []
+
+    headers = {'Authorization': f'Bearer {token}'}
+    url = f'https://api.spotify.com/v1/artists/{spotify_id}/top-tracks'
+    params = {'market': market}
+
+    response = requests.get(url, headers=headers, params=params)
+
+    if response.status_code != 200:
+        print(f"トップトラック取得失敗: {response.status_code} - {response.text}")
+        return []
+
+    try:
+        data = response.json()
+        tracks = data.get('tracks', [])
+        return [
+            {
+                'name': track['name'],
+                'artist': track['artists'][0]['name'],
+                'spotify_url': track['external_urls']['spotify'],
+                'uri': track['uri']
+            }
+            for track in tracks
+        ]
+    except ValueError:
+        print("トップトラックのレスポンスがJSON形式ではありません")
+        return []
+```
+
+---
+
+## ✅ この変更でできること
+
+- プレイリスト作成ビューで `track['uri']` をテンプレートに渡せるようになります。
+- `track_uris` を `<input type="hidden">` に埋め込んで、Spotify保存ボタンで送信できます。
+- `save_playlist_to_spotify()` に渡す `track_uris` が正しい形式になります。
+
+---
+
+## 🔜 次のステップ
+
+1. プレイリスト作成ビューで `track['uri']` を含めて `playlist` に格納
+2. テンプレートで `track_uris` を `join` して hidden input に渡す
+3. 保存ボタンで `save_playlist_to_spotify_view` にPOST送信
+
+---
+
+この拡張で、Spotify連携がいよいよ完成に近づきます！  
+次はビュー側の `playlist.append()` を `uri` 対応に書き換えましょうか？
+
+次は、プレイリスト作成ビュー（`create_playlist_view`）で `track['uri']` を含めるように `playlist` を構築する部分を更新します。
+
+---
+
+## 🎧 `create_playlist_view` の更新（`playlist_views.py`）
+
+以下のように、`playlist.append()` に `uri` を追加し、テンプレートに渡せるようにします：
+
+```python
+from django.shortcuts import render
+from festival.models import EventDay, Performance, Artist
+from festival.forms import PlaylistForm
+from festival.utils.spotify_utils import get_top_tracks
+
+def create_playlist_view(request):
+    """出演アーティストを選択してSpotifyプレイリストを生成するビュー"""
+
+    selected_day_id = request.GET.get('event_day')
+    selected_day = EventDay.objects.filter(id=selected_day_id).first()
+    playlist = []
+    track_uris = []
+
+    # 出演アーティスト一覧（チェックボックス表示用）
+    artists_qs = Artist.objects.filter(performance__event_day=selected_day).distinct() if selected_day else Artist.objects.none()
+
+    if request.method == 'POST':
+        form = PlaylistForm(request.POST, artists_queryset=artists_qs)
+        if form.is_valid():
+            selected_artists = form.cleaned_data['artists']
+            for artist in selected_artists:
+                tracks = get_top_tracks(artist.spotify_id)
+                for track in tracks[:1]:  # 代表曲1曲だけ使う（必要なら複数可）
+                    playlist.append({
+                        'name': track['name'],
+                        'artist': artist.name,
+                        'spotify_url': track['spotify_url'],
+                        'uri': track['uri']
+                    })
+                    track_uris.append(track['uri'])
+    else:
+        form = PlaylistForm(artists_queryset=artists_qs)
+
+    # イベント日程一覧（セレクトボックス用）
+    event_days = EventDay.objects.select_related('event').order_by('date')
+
+    return render(request, 'playlist_create.html', {
+        'form': form,
+        'playlist': playlist,
+        'track_uris': track_uris,
+        'event_days': event_days,
+        'selected_day_id': selected_day_id
+    })
+```
+
+---
+
+## ✅ 変更点まとめ
+
+- `track['uri']` を `playlist` に含めることで、テンプレートでSpotify保存用に使えるようになります。
+- `track_uris` を別リストで管理し、テンプレートに渡しています。
+- テンプレート側では `<input type="hidden" name="track_uris" value="{{ track_uris|join:',' }}">` で送信できます。
+
+---
+
+これで、Spotify保存処理に必要なデータがビューからテンプレートに渡るようになりました！  
+
+表示されたエラー **`INVALID_CLIENT: Invalid redirect URI`** は、SpotifyのOAuth認証でよくある問題で、**リダイレクトURIがSpotifyの開発者ダッシュボードに登録されていない**ことが原因です。
+
+---
+
+## ✅ 解決方法：リダイレクトURIをSpotifyに登録する
+
+### 1. Spotify Developer Dashboard にアクセス  
+[https://developer.spotify.com/dashboard](https://developer.spotify.com/dashboard)
+
+### 2. 対象のアプリを選択
+
+### 3. 「Edit Settings」をクリック
+
+### 4. 「Redirect URIs」に以下を追加（例）
+
+```
+http://localhost:8000/spotify/callback/
+```
+
+※ 実際に `settings.py` の `SPOTIFY_REDIRECT_URI` に設定しているURLと**完全一致**させる必要があります（末尾のスラッシュも含めて）。
+
+```python
+# settings.py
+SPOTIFY_REDIRECT_URI = 'http://localhost:8000/spotify/callback/'
+```
+
+---
+
+## 🔁 よくある間違い
+
+| 設定場所 | よくあるミス例 |
+|----------|----------------|
+| `settings.py` | `http://localhost:8000/spotify/callback`（末尾の `/` がない） |
+| Spotify Dashboard | `http://127.0.0.1:8000/...`（ホスト名が違う） |
+| 両方 | ポート番号やパスが一致していない |
+
+**→ 両方のURIが完全一致しているかを確認してください。**
+
+---
+
+## ✅ 登録後の確認
+
+1. Spotify Dashboardで「Save」ボタンを押す
+2. ブラウザで `/spotify/login/` にアクセスして認証を試す
+3. 正常に `/spotify/callback/` にリダイレクトされ、トークンが取得できるようになります
+
+---
+
+これで `INVALID_CLIENT` エラーは解消されるはずです！  
+修正後、再度「Spotifyに保存」ボタンを押して動作確認してみてください。
+
+リダイレクトURLを「http://127.0.0.1:8000/spotify/callback/」にしたら成功しました。
+
+素晴らしい進展ですね！認証が通ってリダイレクトも成功しているとのこと、あと一歩です。  
+Spotifyアカウントにプレイリストが見当たらない原因として、以下のポイントを順に確認してみましょう。
+
+---
+
+## ✅ チェックリスト：プレイリストが保存されない原因と対策
+
+### 1. **`save_playlist_to_spotify()` が実行されているか**
+- 認証後に `save_playlist_to_spotify()` を呼び出していますか？
+- `save_playlist_to_spotify_view()` の中で `request.session["spotify_token"]` を使ってトークンを取得し、保存処理を呼んでいますか？
+
+### 2. **トークンが正しく渡っているか**
+- `request.session["spotify_token"]` に値が入っているか確認してください。
+- `save_playlist_to_spotify()` の中で `Authorization: Bearer <token>` が正しく設定されているか確認。
+
+### 3. **トラックURIが正しく渡っているか**
+- `track_uris` が空でないか、Spotifyの `spotify:track:...` 形式になっているか確認してください。
+- `print(track_uris)` などでログ出力してみるとよいです。
+
+### 4. **Spotify APIのレスポンスを確認**
+- `save_playlist_to_spotify()` の中で `create_res.status_code` や `add_res.status_code` を `print()` して、ステータスコードが `201`（成功）になっているか確認してください。
+- 失敗している場合、Spotify APIからのエラーメッセージ（`response.text`）を表示して原因を特定できます。
+
+### 5. **プレイリストが非公開になっていないか**
+- `public: False` にしていると、Spotifyアプリの「マイライブラリ」にはすぐ表示されないことがあります。
+- SpotifyのWeb版で「非公開プレイリスト」も含めて確認してみてください。
+
+---
+
+## 🧪 デバッグ用ログ追加例（`save_playlist_to_spotify()`）
+
+```python
+print("🎧 Saving playlist to Spotify...")
+print("Track URIs:", track_uris)
+
+# ユーザー情報取得
+user_res = requests.get("https://api.spotify.com/v1/me", headers=headers)
+print("User info status:", user_res.status_code, user_res.text)
+
+# プレイリスト作成
+create_res = requests.post(...省略...)
+print("Playlist create status:", create_res.status_code, create_res.text)
+
+# 楽曲追加
+add_res = requests.post(...省略...)
+print("Track add status:", add_res.status_code, add_res.text)
+```
+
+---
+
+## ✅ 次のアクション
+
+1. `save_playlist_to_spotify()` の中でログを出力して、どこまで処理が進んでいるか確認
+2. トークン・URI・APIレスポンスの中身をチェック
+3. 必要なら `playlist_url` をテンプレートに表示して、実際に作成されたか確認
+
+---
+
+もしログを貼っていただければ、一緒に原因を特定できます！  
+また、保存処理のコードを見直したい場合は、最新版を共有していただければレビューもできますよ。
+完璧なログありがとうございます！  
+この出力から判断すると、**Spotify APIによるプレイリスト作成と楽曲追加はすべて成功しています**。それにもかかわらず、Spotifyアプリ上でプレイリストが見つからない場合、以下の理由が考えられます：
+
+---
+
+## ✅ プレイリストが見えない理由と対策
+
+### 1. **プレイリストが「非公開」になっている**
+- ログに `"public": false` とあるため、Spotifyアプリの「マイライブラリ」にはすぐ表示されないことがあります。
+- 対策：
+  - Web版Spotify（https://open.spotify.com）でログインし、直接プレイリストURLにアクセス：
+    ```
+    https://open.spotify.com/playlist/3laDO8UUgypexIJRs40Eug
+    ```
+  - プレイリスト画面右上の「…」メニュー → 「公開する」を選択すると、アプリでも表示されるようになります。
+
+---
+
+### 2. **Spotifyアプリのキャッシュが更新されていない**
+- アプリのライブラリは即時反映されないことがあります。
+- 対策：
+  - アプリを再起動する
+  - Web版で確認してからアプリに戻る
+
+---
+
+### 3. **プレイリストが別アカウントに保存されている**
+- 認証されたアカウントが自分のものか確認してください。
+- ログにある `user_id: fidit.fidit` が自分のSpotifyアカウントと一致しているか確認。
+
+---
+
+### 4. **Spotifyアプリのフィルタがかかっている**
+- 「非公開プレイリストを表示しない」などのフィルタがかかっている可能性があります。
+- 対策：
+  - アプリの設定で「すべてのプレイリストを表示」などのオプションを確認
+
+---
+
+## ✅ 確認済みログからの安心ポイント
+
+| 処理 | 結果 | コメント |
+|------|------|----------|
+| ユーザー認証 | ✅ 200 | 正常に認証されている |
+| プレイリスト作成 | ✅ 201 | 正常に作成されている |
+| 楽曲追加 | ✅ 201 | 正常に追加されている |
+| URI数 | ✅ 15曲 | Spotifyの制限内で問題なし |
+
+---
+
+## 🔜 次のステップ
+
+- Web版SpotifyでプレイリストURLを開いて確認
+- 必要なら「公開」に切り替えてアプリに表示
+- テンプレートにプレイリストURLを表示してユーザーに案内する
+
+---
+
+もしテンプレートにプレイリストURLを表示したい場合は、ビューで `playlist_url` を渡して、以下のように書けます：
+
+```html
+{% if playlist_url %}
+    <div class="alert alert-success mt-4">
+        ✅ Spotifyに保存されました！<br>
+        <a href="{{ playlist_url }}" target="_blank">プレイリストを開く</a>
+    </div>
+{% endif %}
+```
+
+この機能が完成すれば、ユーザー体験はかなり本格的になります！  
+次はUIの微調整や、プレイリスト名のカスタマイズに進みましょうか？
