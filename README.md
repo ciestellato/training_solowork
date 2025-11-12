@@ -10,20 +10,20 @@
 - Spotify APIからアーティスト情報取得・保存
 - 類似アーティスト・出演予測ロジック（予定）
 - 管理画面による手動登録・修正
-- プレイリスト作成機能（予定）
+- プレイリスト作成機能
 
 ---
 
 ## 🛠 技術構成
 
-| 項目 | 使用技術 |
-|------|----------|
-| フレームワーク | Django |
-| 言語 | Python, HTML, CSS, JavaScript |
-| データベース | SQLite（Django ORM） |
-| 外部API | Spotify Web API（Client Credentials Flow） |
-| バージョン管理 | GitHub |
-| 環境管理 | `.env` + `python-dotenv` |
+| 項目         | 使用技術                          |
+|--------------|-----------------------------------|
+| フレームワーク | Django                            |
+| 言語         | Python, HTML, CSS, JavaScript     |
+| データベース | SQLite（Django ORM）              |
+| 外部API      | Spotify Web API（Client Credentials Flow） |
+| バージョン管理 | GitHub                            |
+| 環境管理     | `.env` + `python-dotenv`          |
 
 ---
 
@@ -64,6 +64,11 @@ python manage.py runserver
 - 詳細表示（出演者・会場・日程）
 - 管理者向け登録フォーム（JSによる日付選択）
 
+### 🎧 プレイリスト作成機能
+- イベント日程と出演アーティストを選択
+- Spotify APIから代表曲を取得
+- プレイリストとして画面表示（曲名・アーティスト名・Spotifyリンク）
+
 ### 🔍 予測ロジック（予定）
 - 類似アーティストの取得（Spotify `/related-artists`）
 - 出演可能イベントの予測
@@ -72,22 +77,34 @@ python manage.py runserver
 
 ## 📁 ディレクトリ構成（主要部分）
 
-```
+```plaintext
 conf/
 ├── settings.py
 ├── urls.py
+
 festival/
 ├── models.py
 ├── admin.py
-├── views.py
-├── spotify.py        # Spotify API連携処理
+├── urls.py
 ├── templates/
 │   ├── artist_list.html
 │   ├── artist_detail.html
 │   ├── event_list.html
 │   ├── event_detail.html
+│   ├── playlist_create.html
 │   └── register_event_day.html
-.env                   # APIキー管理
+├── views/
+│   ├── artist_views.py
+│   ├── event_views.py
+│   ├── base_views.py
+│   ├── performance_views.py
+│   └── playlist_views.py
+├── forms.py
+├── utils/
+│   ├── text_utils.py
+│   └── spotify_utils.py
+
+.env  # APIキー管理
 ```
 
 ---
@@ -96,6 +113,7 @@ festival/
 
 - Djangoのテストフレームワークを使用予定
 - 管理画面・API連携・検索機能の動作確認済み
+- プレイリスト作成機能の動作確認済み
 - UI調整・Bootstrap導入は今後の課題
 
 ---
@@ -103,6 +121,7 @@ festival/
 ## 📌 今後の予定
 
 - 類似アーティスト予測ロジックの実装
-- プレイリスト作成機能の追加
-- UI改善（Bootstrap導入、検索結果の表示調整）
+- Spotify連携によるプレイリスト保存機能
+- ユーザー認証・お気に入りアーティスト保存機能
+- UI改善（Bootstrap強化、検索結果の表示調整）
 - READMEの英語版作成（必要に応じて）
