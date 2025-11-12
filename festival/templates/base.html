@@ -20,6 +20,11 @@
                     <li class="nav-item"><a class="nav-link" href="{% url 'festival:other_event_list' %}">ライヴ</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'festival:create_playlist' %}">プレイリスト</a></li>
                     <li class="nav-item"><a class="nav-link" href="/admin/">管理画面</a></li>
+                    {% if request.user.is_staff %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'festival:admin_menu' %}">管理者メニュー</a>
+                        </li>
+                    {% endif %}
                 </ul>
                 <ul class="navbar-nav">
                     <li class="nav-item"><a class="nav-link" href="{% url 'festival:spotify_login' %}">Spotifyログイン</a></li>

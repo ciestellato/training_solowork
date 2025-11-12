@@ -13,11 +13,15 @@
     <a href="{% url 'festival:other_event_list' %}" class="list-group-item list-group-item-action">🎧 ライヴ一覧</a>
 </div>
 
+{% if request.user.is_staff %}
 <div class="list-group mt-4">
     <h2>管理者メニュー</h2>
     <a href="{% url 'festival:bulk_artist_register' %}" class="list-group-item list-group-item-action">📦 アーティスト一括登録</a>
     <a href="{% url 'festival:edit_artist_bulk' %}" class="list-group-item list-group-item-action">📦 アーティストふりがな修正</a>
     <a href="{% url 'festival:create_event' %}" class="list-group-item list-group-item-action">📅 イベント登録</a>
+    <a href="{% url 'festival:register_event_day' %}" class="list-group-item list-group-item-action">📅 出演者登録</a>
+    <a href="{% url 'festival:paste_schedule_register' %}" class="list-group-item list-group-item-action">📋 ツアー日程登録</a>
     <a href="/admin/" class="list-group-item list-group-item-action">🛠 管理画面</a>
 </div>
+{% endif %}
 {% endblock %}

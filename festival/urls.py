@@ -16,6 +16,7 @@ from .views.performance_views import (
 )
 from .views.playlist_views import create_playlist_view, save_playlist_to_spotify_view
 from .views.spotify_auth_views import spotify_login_view, spotify_callback_view
+from .views.admin_views import admin_menu
 
 app_name = 'festival'
 
@@ -51,4 +52,6 @@ urlpatterns = [
     path('spotify/login/', spotify_login_view, name='spotify_login'),
     path('spotify/callback/', spotify_callback_view, name='spotify_callback'),
 
+    # 管理者メニュー
+    path('admin_menu/', admin_menu, name='admin_menu'),
 ]
