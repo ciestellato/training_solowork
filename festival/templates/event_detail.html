@@ -1,50 +1,41 @@
-<!-- festival/templates/event_detail.html -->
+{% extends 'base.html' %}
 
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ event.name }} の詳細</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="container mt-4">
-    <h1>{{ event.name }} の詳細</h1>
+{% block title %}{{ event.name }} の詳細{% endblock %}
 
+{% block content %}
+<h1>{{ event.name }} の詳細</h1>
+
+<div class="mb-3">
+    <p><strong>開催期間:</strong> {{ event.start_date }} 〜 {{ event.end_date }}</p>
+    <p><strong>概要:</strong><br>{{ event.description|linebreaks }}</p>
+    {% if event.official_url %}
+        <p><strong>公式サイト:</strong> <a href="{{ event.official_url }}" target="_blank">{{ event.official_url }}</a></p>
+    {% endif %}
+</div>
+
+<h4>開催日程と出演者</h4>
+{% for day, performances in day_performances %}
     <div class="mb-3">
-        <p><strong>開催期間:</strong> {{ event.start_date }} 〜 {{ event.end_date }}</p>
-        <p><strong>概要:</strong><br>{{ event.description|linebreaks }}</p>
-        {% if event.official_url %}
-            <p><strong>公式サイト:</strong> <a href="{{ event.official_url }}" target="_blank">{{ event.official_url }}</a></p>
-        {% endif %}
-    </div>
-
-    <h4>開催日程と出演者</h4>
-    {% for day, performances in day_performances %}
         <h5>{{ day.date }} @ {{ day.venue }}</h5>
-        <p>
-            {% if performances %}
-                <strong>出演者（{{ performances|length }}組）:</strong><br>
+        {% if performances %}
+            <p><strong>出演者（{{ performances|length }}組）:</strong><br>
                 {% for perf in performances %}
                     <a href="{% url 'festival:artist_detail' perf.artist.pk %}">{{ perf.artist.name }}</a>{% if not forloop.last %} / {% endif %}
                 {% endfor %}
-            {% else %}
-                <span class="text-muted">出演者未登録</span>
-            {% endif %}
-        </p>
-        {% if request.user.is_staff %}
-            <p>
-                <a href="{% url 'festival:edit_event_day_performances' day.id %}" class="btn btn-sm btn-outline-secondary">
-                    出演者を編集
-                </a>
             </p>
+        {% else %}
+            <p class="text-muted">出演者未登録</p>
         {% endif %}
-    {% empty %}
-        <p>日程が登録されていません。</p>
-    {% endfor %}
+        {% if request.user.is_staff %}
+            <a href="{% url 'festival:edit_event_day_performances' day.id %}" class="btn btn-sm btn-outline-secondary">出演者を編集</a>
+        {% endif %}
+    </div>
+{% empty %}
+    <p class="text-muted">日程が登録されていません。</p>
+{% endfor %}
 
-    {% if request.user.is_staff %}
-        <a href="{% url 'festival:register_event_day' %}?event_id={{ event.id }}" class="btn btn-secondary">このイベントに出演者を登録</a>
-    {% endif %}
-    <a href="{% url 'festival:event_list' %}" class="btn btn-secondary">イベント一覧に戻る</a>
-</body>
-</html>
+{% if request.user.is_staff %}
+    <a href="{% url 'festival:register_event_day' %}?event_id={{ event.id }}" class="btn btn-secondary">このイベントに出演者を登録</a>
+{% endif %}
+<a href="{% url 'festival:event_list' %}" class="btn btn-secondary mt-3">イベント一覧に戻る</a>
+{% endblock %}

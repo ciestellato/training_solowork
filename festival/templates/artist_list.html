@@ -1,70 +1,66 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>アーティスト一覧</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="container mt-4">
-    <a href="{% url 'festival:index' %}" class="btn btn-secondary">トップへ戻る</a>
-    <h1>🎤 アーティスト一覧</h1>
+{% extends 'base.html' %}
 
-    <!-- 頭文字タブ -->
-    <div class="mb-3">
-        <div class="d-flex flex-wrap gap-2">
-            <strong class="me-2">五十音:</strong>
-            {% for char in initials %}
-                {% if char in 'あかさたなはまやらわ' %}
-                    <a href="?initial={{ char }}" class="btn btn-outline-primary btn-sm {% if char == initial %}active{% endif %}">{{ char }}</a>
-                {% endif %}
-            {% endfor %}
-        </div>
-        <div class="d-flex flex-wrap gap-2 mt-2">
-            <strong class="me-2">ABC:</strong>
-            {% for char in initials %}
-                {% if char|length == 1 and char|upper in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' %}
-                    <a href="?initial={{ char }}" class="btn btn-outline-primary btn-sm {% if char == initial %}active{% endif %}">{{ char }}</a>
-                {% endif %}
-            {% endfor %}
-        </div>
-        <div class="mt-2">
-            <a href="{% url 'festival:artist_list' %}" class="btn btn-secondary btn-sm">すべて表示</a>
-        </div>
+{% block title %}アーティスト一覧{% endblock %}
+
+{% block content %}
+<h1>🎤 アーティスト一覧</h1>
+
+<!-- 頭文字タブ -->
+<div class="mb-3">
+    <div class="d-flex flex-wrap gap-2">
+        <strong class="me-2">五十音:</strong>
+        {% for char in initials %}
+            {% if char in 'あかさたなはまやらわ' %}
+                <a href="?initial={{ char }}" class="btn btn-outline-primary btn-sm {% if char == initial %}active{% endif %}">{{ char }}</a>
+            {% endif %}
+        {% endfor %}
     </div>
+    <div class="d-flex flex-wrap gap-2 mt-2">
+        <strong class="me-2">ABC:</strong>
+        {% for char in initials %}
+            {% if char|length == 1 and char|upper in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' %}
+                <a href="?initial={{ char }}" class="btn btn-outline-primary btn-sm {% if char == initial %}active{% endif %}">{{ char }}</a>
+            {% endif %}
+        {% endfor %}
+    </div>
+    <div class="mt-2">
+        <a href="{% url 'festival:artist_list' %}" class="btn btn-secondary btn-sm">すべて表示</a>
+    </div>
+</div>
 
-    <!-- 検索フォーム -->
-    <form method="get" class="mb-3">
-        <div class="input-group">
-            <input type="text" name="q" class="form-control" placeholder="アーティスト名で検索" value="{{ query|default_if_none:'' }}">
-            <button type="submit" class="btn btn-primary">検索</button>
-        </div>
-    </form>
+<!-- 検索フォーム -->
+<form method="get" class="mb-3">
+    <div class="input-group">
+        <input type="text" name="q" class="form-control" placeholder="アーティスト名で検索" value="{{ query|default_if_none:'' }}">
+        <button type="submit" class="btn btn-primary">検索</button>
+    </div>
+</form>
 
-    <!-- 一覧表示 -->
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>名前</th>
-                <th>ふりがな</th>
-                <th>ジャンル</th>
-                <th>Spotify ID</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for artist in artists %}
-            <tr>
-                <td><a href="{% url 'festival:artist_detail' artist.pk %}">{{ artist.name }}</a></td>
-                <td>{{ artist.furigana }}</td>
-                <td>{{ artist.genres|join:", " }}</td>
-                <td>{{ artist.spotify_id }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="4">該当するアーティストが見つかりませんでした。</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<!-- 一覧表示 -->
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>名前</th>
+            <th>ふりがな</th>
+            <th>ジャンル</th>
+            <th>Spotify ID</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for artist in artists %}
+        <tr>
+            <td><a href="{% url 'festival:artist_detail' artist.pk %}">{{ artist.name }}</a></td>
+            <td>{{ artist.furigana }}</td>
+            <td>{{ artist.genres|join:", " }}</td>
+            <td>{{ artist.spotify_id }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4">該当するアーティストが見つかりませんでした。</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 
-</body>
-</html>
+<a href="{% url 'festival:index' %}" class="btn btn-secondary mt-3">トップへ戻る</a>
+{% endblock %}

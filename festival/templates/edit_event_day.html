@@ -1,44 +1,37 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>イベント日程と出演者編集</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="container mt-4">
-    <h1>📅 イベント日程と出演者編集</h1>
+{% extends 'base.html' %}
 
-    {% if message %}
-        <div class="alert alert-success">{{ message }}</div>
-    {% endif %}
+{% block title %}イベント日程と出演者編集{% endblock %}
 
-    <h2>{{ event.name }} - {{ event_day.date }} の出演者編集</h2>
+{% block content %}
+<h1>📅 イベント日程と出演者編集</h1>
 
-    <form method="post">
-        {% csrf_token %}
+{% if message %}
+    <div class="alert alert-success">{{ message }}</div>
+{% endif %}
 
-        <!-- 表示用（編集不可） -->
-        <div class="mb-3">
-            <label class="form-label">イベント名</label>
-            <input type="text" class="form-control" value="{{ event.name }}" readonly>
-        </div>
+<h2>{{ event.name }} - {{ event_day.date }} の出演者編集</h2>
 
-        <!-- 実際に送信される hidden フィールド -->
-        <input type="hidden" name="event" value="{{ event.id }}">
+<form method="post">
+    {% csrf_token %}
 
-        <!-- 出演者検索ボックス -->
-        <div class="mb-3">
-            <label for="artistSearch" class="form-label">出演者検索</label>
-            <input type="text" id="artistSearch" class="form-control" placeholder="名前で絞り込み">
-        </div>
+    <div class="mb-3">
+        <label class="form-label">イベント名</label>
+        <input type="text" class="form-control" value="{{ event.name }}" readonly>
+    </div>
 
-        <!-- Djangoフォーム出力 -->
-        {{ form.as_p }}
+    <input type="hidden" name="event" value="{{ event.id }}">
 
-        <button type="submit" class="btn btn-primary">更新</button>
-    </form>
+    <div class="mb-3">
+        <label for="artistSearch" class="form-label">出演者検索</label>
+        <input type="text" id="artistSearch" class="form-control" placeholder="名前で絞り込み">
+    </div>
 
-    <a href="{% url 'festival:event_detail' event.id %}" class="btn btn-secondary mt-3">← イベント詳細に戻る</a>
+    {{ form.as_p }}
+
+    <button type="submit" class="btn btn-primary">更新</button>
+</form>
+
+<a href="{% url 'festival:event_detail' event.id %}" class="btn btn-secondary mt-3">← イベント詳細に戻る</a>
 
 <script type="text/javascript">
     const eventData = JSON.parse('{{ event_data_json|escapejs }}' || '{}');
@@ -76,7 +69,6 @@
             eventField.disabled = true;
         }
 
-        // 出演者検索機能（CheckboxSelectMultiple対応）
         const searchInput = document.getElementById("artistSearch");
         const artistLabels = document.querySelectorAll("#id_artists label");
 
@@ -95,5 +87,4 @@
         }
     });
 </script>
-</body>
-</html>
+{% endblock %}

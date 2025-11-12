@@ -1,27 +1,23 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>ツアー詳細登録</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="container mt-4">
-    <h1>📋 出演日程の一括登録</h1>
+{% extends 'base.html' %}
 
-    {% if message %}
-        <div class="alert alert-info">{{ message }}</div>
-    {% endif %}
+{% block title %}ツアー詳細登録{% endblock %}
 
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-primary">登録する</button>
-    </form>
+{% block content %}
+<h1>📋 出演日程の一括登録</h1>
 
-    {% if request.GET.next %}
-        <a href="{{ request.GET.next }}" class="btn btn-secondary mt-3">← {{ form.cleaned_data.artist.name }} の詳細に戻る</a>
-    {% else %}
-        <a href="{% url 'festival:artist_list' %}" class="btn btn-secondary mt-3">← 一覧に戻る</a>
-    {% endif %}
-</body>
-</html>
+{% if message %}
+    <div class="alert alert-info">{{ message }}</div>
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">登録する</button>
+</form>
+
+{% if request.GET.next %}
+    <a href="{{ request.GET.next }}" class="btn btn-secondary mt-3">← {{ form.cleaned_data.artist.name }} の詳細に戻る</a>
+{% else %}
+    <a href="{% url 'festival:artist_list' %}" class="btn btn-secondary mt-3">← 一覧に戻る</a>
+{% endif %}
+{% endblock %}

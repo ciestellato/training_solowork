@@ -1,113 +1,108 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>プレイリスト作成</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="container mt-4">
-    <h1>🎧 プレイリスト作成</h1>
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} mt-3" role="alert">
-                {{ message|safe }}
-            </div>
-        {% endfor %}
-    {% endif %}
+{% extends 'base.html' %}
 
-    <!-- イベント日程選択（GET） -->
-    <form method="GET" class="mb-4">
-        <label for="event_day" class="form-label">イベント日程を選択</label>
-        <div class="input-group">
-            <select name="event_day" id="event_day" class="form-select">
-                {% for day in event_days %}
-                    <option value="{{ day.id }}" {% if day.id|stringformat:"s" == selected_day_id %}selected{% endif %}>
-                        {{ day.date }} @ {{ day.venue }}
-                    </option>
-                {% endfor %}
-            </select>
-            <button type="submit" class="btn btn-outline-primary">出演者を表示</button>
+{% block title %}プレイリスト作成{% endblock %}
+
+{% block content %}
+<h1>🎧 プレイリスト作成</h1>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} mt-3" role="alert">
+            {{ message|safe }}
         </div>
-    </form>
+    {% endfor %}
+{% endif %}
 
-    {% if form %}
-    <!-- 出演アーティスト選択（POST） -->
-    <form method="POST">
-        {% csrf_token %}
-        {% if form.errors %}
-            <div class="alert alert-danger">
-                <strong>エラーがあります：</strong>
-                <ul>
-                    {% for field in form %}
-                        {% for error in field.errors %}
-                            <li>{{ error }}</li>
-                        {% endfor %}
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endif %}
-
-        <div class="mb-3">
-            <label class="form-label">出演アーティストを選択</label>
-            <input type="text" class="form-control mb-2" placeholder="アーティスト名で絞り込み" id="artistSearch">
-            <div class="border p-3" style="max-height: 300px; overflow-y: scroll;">
-                {{ form.artists }}
-            </div>
-        </div>
-
-        <label for="track_count">1組あたりの保存曲数:</label>
-        <select id="track_count" name="track_count" class="form-select w-auto">
-            {% for i in "123456789" %}
-                <option value="{{ i }}" {% if i == selected_track_count %}selected{% endif %}>{{ i }}</option>
+<!-- イベント日程選択（GET） -->
+<form method="GET" class="mb-4">
+    <label for="event_day" class="form-label">イベント日程を選択</label>
+    <div class="input-group">
+        <select name="event_day" id="event_day" class="form-select">
+            {% for day in event_days %}
+                <option value="{{ day.id }}" {% if day.id|stringformat:"s" == selected_day_id %}selected{% endif %}>
+                    {{ day.date }} @ {{ day.venue }}
+                </option>
             {% endfor %}
         </select>
+        <button type="submit" class="btn btn-outline-primary">出演者を表示</button>
+    </div>
+</form>
 
-        <button type="submit" class="btn btn-primary">プレイリストを作成する</button>
-    </form>
-    {% endif %}
-
-    <!-- 結果表示 -->
-    {% if playlist %}
-        <hr>
-        <h2 class="mt-4">🎶 プレイリスト（{{ track_uris|length }}曲）</h2>
-
-        {% if not can_save_to_spotify %}
-            <div class="alert alert-warning">
-                ⚠️ Spotifyの保存上限（100曲）を超えています。<br>
-                保存曲数または選択アーティスト数を減らしてください。
-            </div>
-        {% else %}
-
-            <ul class="list-group">
-                {% for track in playlist %}
-                    <li class="list-group-item">
-                        {{ track.name }} - {{ track.artist }}
-                        <a href="{{ track.spotify_url }}" target="_blank" class="btn btn-sm btn-outline-success float-end">Spotifyで聴く</a>
-                    </li>
+{% if form %}
+<!-- 出演アーティスト選択（POST） -->
+<form method="POST">
+    {% csrf_token %}
+    {% if form.errors %}
+        <div class="alert alert-danger">
+            <strong>エラーがあります：</strong>
+            <ul>
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
                 {% endfor %}
             </ul>
-
-            <!-- Spotify保存ボタン -->
-            <form method="POST" action="{% url 'festival:save_playlist_to_spotify' %}">
-                {% csrf_token %}
-                <input type="hidden" name="track_uris" value="{{ track_uris|join:',' }}">
-                <input type="hidden" name="playlist_name" value="{{ playlist_name }}">
-                <button type="submit" class="btn btn-success mt-4">🎵 Spotifyに保存する</button>
-            </form>
-        {% endif %}
+        </div>
     {% endif %}
 
-    <a href="{% url 'festival:event_list' %}" class="btn btn-secondary mt-4">イベント一覧へ戻る</a>
+    <div class="mb-3">
+        <label class="form-label">出演アーティストを選択</label>
+        <input type="text" class="form-control mb-2" placeholder="アーティスト名で絞り込み" id="artistSearch">
+        <div class="border p-3" style="max-height: 300px; overflow-y: scroll;">
+            {{ form.artists }}
+        </div>
+    </div>
 
-    <!-- JS: アーティスト検索フィルター -->
-    <script>
-        document.getElementById('artistSearch').addEventListener('input', function () {
-            const keyword = this.value.toLowerCase();
-            document.querySelectorAll('.form-check').forEach(cb => {
-                const label = cb.textContent.toLowerCase();
-                cb.style.display = label.includes(keyword) ? 'block' : 'none';
-            });
+    <label for="track_count">1組あたりの保存曲数:</label>
+    <select id="track_count" name="track_count" class="form-select w-auto">
+        {% for i in "123456789" %}
+            <option value="{{ i }}" {% if i == selected_track_count %}selected{% endif %}>{{ i }}</option>
+        {% endfor %}
+    </select>
+
+    <button type="submit" class="btn btn-primary mt-3">プレイリストを作成する</button>
+</form>
+{% endif %}
+
+<!-- 結果表示 -->
+{% if playlist %}
+    <hr>
+    <h2 class="mt-4">🎶 プレイリスト（{{ track_uris|length }}曲）</h2>
+
+    {% if not can_save_to_spotify %}
+        <div class="alert alert-warning">
+            ⚠️ Spotifyの保存上限（100曲）を超えています。<br>
+            保存曲数または選択アーティスト数を減らしてください。
+        </div>
+    {% else %}
+        <ul class="list-group">
+            {% for track in playlist %}
+                <li class="list-group-item">
+                    {{ track.name }} - {{ track.artist }}
+                    <a href="{{ track.spotify_url }}" target="_blank" class="btn btn-sm btn-outline-success float-end">Spotifyで聴く</a>
+                </li>
+            {% endfor %}
+        </ul>
+
+        <!-- Spotify保存ボタン -->
+        <form method="POST" action="{% url 'festival:save_playlist_to_spotify' %}">
+            {% csrf_token %}
+            <input type="hidden" name="track_uris" value="{{ track_uris|join:',' }}">
+            <input type="hidden" name="playlist_name" value="{{ playlist_name }}">
+            <button type="submit" class="btn btn-success mt-4">🎵 Spotifyに保存する</button>
+        </form>
+    {% endif %}
+{% endif %}
+
+<a href="{% url 'festival:event_list' %}" class="btn btn-secondary mt-4">イベント一覧へ戻る</a>
+
+<script>
+    document.getElementById('artistSearch').addEventListener('input', function () {
+        const keyword = this.value.toLowerCase();
+        document.querySelectorAll('.form-check').forEach(cb => {
+            const label = cb.textContent.toLowerCase();
+            cb.style.display = label.includes(keyword) ? 'block' : 'none';
         });
-    </script>
-</body>
-</html>
+    });
+</script>
+{% endblock %}
