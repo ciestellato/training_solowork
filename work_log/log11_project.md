@@ -125,4 +125,294 @@ Spotifyの仕様変更に柔軟に対応し、プレイリスト作成機能に�
 
 ---
 
-このテンプレートをベースに、次はビュー関数とSpotify API連携のロジック設計に進むとスムーズです。必要なら、フォームクラスやユーティリティ関数の設計も一緒に進められますよ。どこから着手しましょう？
+既存のビュー構成を踏まえたうえで、**プレイリスト作成機能のビュー関数**を以下に追加提案します。
+
+---
+
+## 🎧 プレイリスト作成ビュー（`create_playlist`）
+
+このビューでは、ユーザーがイベント日程を選択し、出演アーティストをチェックボックスで選択したうえで、Spotify APIを使って代表曲を取得し、プレイリストとして表示します。
+
+```python
+from django.shortcuts import render, get_object_or_404
+from .models import EventDay, Performance, Artist
+from .forms import PlaylistForm  # チェックボックス付きフォームを別途定義
+from .spotify_utils import get_top_tracks  # Spotify API呼び出し関数（別ファイルに分離）
+
+def create_playlist(request):
+    """プレイリスト作成ビュー"""
+
+    playlist = []
+    selected_day_id = request.GET.get('event_day')
+    selected_day = EventDay.objects.filter(id=selected_day_id).first()
+
+    # 出演者一覧を取得（選択肢として表示）
+    artists_qs = Artist.objects.filter(performance__event_day=selected_day).distinct() if selected_day else Artist.objects.none()
+
+    if request.method == 'POST':
+        form = PlaylistForm(request.POST, artists_queryset=artists_qs)
+        if form.is_valid():
+            selected_artists = form.cleaned_data['artists']
+            for artist in selected_artists:
+                tracks = get_top_tracks(artist.spotify_id)
+                for track in tracks:
+                    playlist.append({
+                        'name': track['name'],
+                        'artist': artist.name,
+                        'spotify_url': track['external_urls']['spotify']
+                    })
+    else:
+        form = PlaylistForm(artists_queryset=artists_qs)
+
+    # イベント日程一覧（セレクトボックス用）
+    event_days = EventDay.objects.select_related('event').order_by('date')
+
+    return render(request, 'playlist_create.html', {
+        'form': form,
+        'playlist': playlist,
+        'event_days': event_days,
+        'selected_day_id': selected_day_id
+    })
+```
+
+---
+
+## 🔧 補足
+
+- `PlaylistForm` は `ModelMultipleChoiceField` を使って出演アーティストを選択できるようにしたフォームです。`__init__` で `artists_queryset` を受け取るように設計します。
+- `get_top_tracks(spotify_id)` は Spotify API の `/artists/{id}/top-tracks` を使って代表曲を取得する関数です。`spotify_utils.py` に分離しておくと保守性が高まります。
+- プレイリストはテンプレート側で `name`, `artist`, `spotify_url` を使って表示します。
+
+---
+
+それでは、Spotify APIを使ってアーティストの代表曲（トップトラック）を取得する関数 `get_top_tracks()` を `spotify_utils.py` に追加しましょう。
+
+---
+
+## 🎧 `get_top_tracks()` の定義（日本向け）
+
+```python
+def get_top_tracks(spotify_id, market='JP'):
+    """
+    指定されたSpotifyアーティストIDからトップトラック（代表曲）を取得する。
+    デフォルトは日本（JP）市場。
+    """
+    token = get_spotify_token()
+    if not token:
+        return []
+
+    headers = {'Authorization': f'Bearer {token}'}
+    url = f'https://api.spotify.com/v1/artists/{spotify_id}/top-tracks'
+    params = {'market': market}
+
+    response = requests.get(url, headers=headers, params=params)
+
+    if response.status_code != 200:
+        print(f"トップトラック取得失敗: {response.status_code} - {response.text}")
+        return []
+
+    try:
+        data = response.json()
+        return data.get('tracks', [])
+    except ValueError:
+        print("トップトラックのレスポンスがJSON形式ではありません")
+        return []
+```
+
+---
+
+## ✅ 使用例（ビューやテンプレート用）
+
+この関数は以下のように使えます：
+
+```python
+tracks = get_top_tracks(artist.spotify_id)
+for track in tracks:
+    print(track['name'], track['external_urls']['spotify'])
+```
+
+---
+
+## 🔒 注意点
+
+- `market='JP'` を指定することで、日本で人気の曲を優先的に取得できます
+- 返される `track` オブジェクトには以下のような情報が含まれます：
+  - `name`: 曲名
+  - `external_urls['spotify']`: Spotifyリンク
+  - `album['images']`: ジャケット画像（必要なら）
+  - `preview_url`: 試聴用URL（存在する場合）
+
+---
+
+Djangoの `shell` で `get_top_tracks()` を動作確認するには、以下の手順で進めるとスムーズです。
+
+---
+
+## 🧪 1. Django Shell を起動
+
+```bash
+python manage.py shell
+```
+
+---
+
+## 🧪 2. 必要な関数をインポート
+
+```python
+from festival.utils.spotify_utils import get_top_tracks
+```
+
+---
+
+## 🧪 3. Spotify ID を指定して関数を実行
+
+Spotify ID は `Artist` モデルの `spotify_id` フィールドに保存されているはずです。まずは1件取得してみましょう：
+
+```python
+from festival.models import Artist
+artist = Artist.objects.first()  # または filter(name="アーティスト名").first()
+tracks = get_top_tracks(artist.spotify_id)
+```
+
+---
+
+## 🧪 4. 結果を確認
+
+```python
+for track in tracks:
+    print(track['name'], track['external_urls']['spotify'])
+```
+
+---
+
+## ✅ 補足
+
+- トークン取得に失敗した場合は `None` が返るので、`get_spotify_token()` を個別に呼び出して確認できます。
+- `tracks` は最大10件程度の代表曲が含まれます。
+- `market='JP'` を指定しているため、日本向けの人気曲が優先されます。
+
+---
+
+ここでは、Spotify APIを使って出演アーティストの代表曲を取得し、プレイリストとして表示するビュー関数を完成させます。以下は `views/playlist_views.py` に追加する形で設計しています。
+
+---
+
+## 🎧 プレイリスト生成ビュー（`create_playlist_view`）
+
+```python
+from django.shortcuts import render, get_object_or_404
+from festival.models import EventDay, Performance, Artist
+from festival.forms import PlaylistForm
+from festival.utils.spotify_utils import get_top_tracks
+
+def create_playlist_view(request):
+    """出演アーティストを選択してSpotifyプレイリストを生成するビュー"""
+
+    selected_day_id = request.GET.get('event_day')
+    selected_day = EventDay.objects.filter(id=selected_day_id).first()
+    playlist = []
+
+    # 出演アーティスト一覧（チェックボックス表示用）
+    artists_qs = Artist.objects.filter(performance__event_day=selected_day).distinct() if selected_day else Artist.objects.none()
+
+    if request.method == 'POST':
+        form = PlaylistForm(request.POST, artists_queryset=artists_qs)
+        if form.is_valid():
+            selected_artists = form.cleaned_data['artists']
+            for artist in selected_artists:
+                tracks = get_top_tracks(artist.spotify_id)
+                for track in tracks[:1]:  # 代表曲1曲だけ使う（必要なら複数可）
+                    playlist.append({
+                        'name': track['name'],
+                        'artist': artist.name,
+                        'spotify_url': track['external_urls']['spotify']
+                    })
+    else:
+        form = PlaylistForm(artists_queryset=artists_qs)
+
+    # イベント日程一覧（セレクトボックス用）
+    event_days = EventDay.objects.select_related('event').order_by('date')
+
+    return render(request, 'playlist_create.html', {
+        'form': form,
+        'playlist': playlist,
+        'event_days': event_days,
+        'selected_day_id': selected_day_id
+    })
+```
+
+---
+
+## ✅ 補足ポイント
+
+- `PlaylistForm` は `ModelMultipleChoiceField` を使ったカスタムフォームで、`artists_queryset` を引数で受け取るように設計します（次で定義できます）
+- `get_top_tracks()` は Spotify API から代表曲を取得する関数（すでに定義済み）
+- `playlist_create.html` テンプレートでは、`playlist` をループして曲名・アーティスト名・Spotifyリンクを表示します
+
+---
+
+## 🔜 次のステップ
+
+- `forms.py` に `PlaylistForm` を追加
+- `urls.py` にルーティングを追加：
+  ```python
+  from .views.playlist_views import create_playlist_view
+  path('playlist/create/', create_playlist_view, name='create_playlist')
+  ```
+
+---
+
+このビューで、ユーザーがイベント日程を選び、出演者をチェックしてプレイリストを生成する流れが完成します。次は `PlaylistForm` の定義に進みましょう！
+以下に、プレイリスト作成ビューで使用する **`PlaylistForm`** を `forms.py` に追加する構成をご提案します。
+
+---
+
+## 🧾 `forms.py` に追加する `PlaylistForm`
+
+```python
+from django import forms
+from festival.models import Artist
+
+class PlaylistForm(forms.Form):
+    """出演アーティスト選択用フォーム（プレイリスト作成）"""
+
+    artists = forms.ModelMultipleChoiceField(
+        queryset=Artist.objects.none(),
+        widget=forms.CheckboxSelectMultiple,
+        required=True,
+        label='出演アーティスト'
+    )
+
+    def __init__(self, *args, artists_queryset=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if artists_queryset is not None:
+            self.fields['artists'].queryset = artists_queryset
+```
+
+---
+
+## ✅ 説明
+
+- `ModelMultipleChoiceField` を使って、複数の `Artist` をチェックボックスで選択可能にしています
+- `artists_queryset` を `__init__()` で受け取り、ビュー側から出演者リストを注入する設計です
+- `CheckboxSelectMultiple` により、テンプレート側でチェックボックスとして表示されます
+
+---
+
+## 🔗 ビューとの連携（復習）
+
+```python
+form = PlaylistForm(request.POST or None, artists_queryset=artists_qs)
+```
+
+---
+
+## 🧪 テストポイント
+
+- イベント日程を選択すると、出演アーティストがチェックボックスで表示される
+- チェックしたアーティストの代表曲がプレイリストとして表示される
+- 未選択時はバリデーションエラーになる（`required=True`）
+
+---
+
+これで、プレイリスト作成機能のフォーム部分が完成です！次はテンプレートの調整や、Spotifyリンクの表示スタイルを整える段階に進めましょうか？

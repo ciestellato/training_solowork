@@ -14,6 +14,7 @@ from .views.performance_views import (
     edit_event_day_performances,
     paste_schedule_register
 )
+from .views.playlist_views import create_playlist_view
 
 app_name = 'festival'
 
@@ -40,4 +41,7 @@ urlpatterns = [
     path('eventday/register/', register_event_day_and_performances, name='register_event_day'),
     path('event_day/<int:event_day_id>/edit/', edit_event_day_performances, name='edit_event_day_performances'),
     path('tour/register/', paste_schedule_register, name='paste_schedule_register'),
+
+    # プレイリスト関連
+    path('playlist/create/', create_playlist_view, name='create_playlist')
 ]

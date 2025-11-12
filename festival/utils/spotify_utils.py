@@ -71,3 +71,29 @@ def save_artist_from_spotify(name):
         )
         return artist
     return None
+
+def get_top_tracks(spotify_id, market='JP'):
+    """
+    指定されたSpotifyアーティストIDからトップトラック（代表曲）を取得する。
+    デフォルトは日本（JP）市場。
+    """
+    token = get_spotify_token()
+    if not token:
+        return []
+
+    headers = {'Authorization': f'Bearer {token}'}
+    url = f'https://api.spotify.com/v1/artists/{spotify_id}/top-tracks'
+    params = {'market': market}
+
+    response = requests.get(url, headers=headers, params=params)
+
+    if response.status_code != 200:
+        print(f"トップトラック取得失敗: {response.status_code} - {response.text}")
+        return []
+
+    try:
+        data = response.json()
+        return data.get('tracks', [])
+    except ValueError:
+        print("トップトラックのレスポンスがJSON形式ではありません")
+        return []

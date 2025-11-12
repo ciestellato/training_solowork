@@ -63,3 +63,18 @@ class EventForm(forms.ModelForm):
         end = cleaned_data.get('end_date')
         if start and end and start > end:
             raise forms.ValidationError("開始日は終了日より前である必要があります。")
+
+class PlaylistForm(forms.Form):
+    """出演アーティスト選択用フォーム（プレイリスト作成）"""
+
+    artists = forms.ModelMultipleChoiceField(
+        queryset=Artist.objects.none(),
+        widget=forms.CheckboxSelectMultiple,
+        required=True,
+        label='出演アーティスト'
+    )
+
+    def __init__(self, *args, artists_queryset=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if artists_queryset is not None:
+            self.fields['artists'].queryset = artists_queryset
