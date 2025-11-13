@@ -43,6 +43,7 @@ def create_event(request):
         form = EventForm()
     return render(request, 'event_form.html', {'form': form, 'mode': 'create'})
 
+@staff_member_required
 def edit_event(request, event_id):
     """イベント編集ビュー"""
     event = get_object_or_404(Event, pk=event_id)

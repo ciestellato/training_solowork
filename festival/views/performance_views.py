@@ -241,6 +241,7 @@ def generate_event_date_choices(event):
         current += timedelta(days=1)
     return choices
 
+@staff_member_required
 def register_timetable(request):
     """タイムテーブル登録"""
     event_day_id = request.GET.get('event_day')
@@ -326,6 +327,7 @@ def timetable_view(request):
     }
     return render(request, 'timetable_view.html', context)
 
+@staff_member_required
 def edit_performance(request, performance_id):
     """タイムテーブル修正ビュー"""
     perf = get_object_or_404(Performance, id=performance_id)
