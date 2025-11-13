@@ -43,7 +43,10 @@
                                     未定
                                 {% endif %}
                             </td>
-                            <td>{{ perf.artist.name }}</td>
+                            <td>
+                                {{ perf.artist.name }}
+                                <a href="{% url 'festival:edit_performance' perf.id %}" class="btn btn-sm btn-outline-primary ms-2">編集</a>
+                            </td>
                         </tr>
                     {% empty %}
                         <tr><td colspan="2">出演者未登録</td></tr>

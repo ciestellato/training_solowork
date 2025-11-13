@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}タイムテーブル編集{% endblock %}
+{% block content %}
+<h1>🛠 タイムテーブル編集</h1>
+
+<form method="POST">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label>アーティスト</label>
+        <input type="text" class="form-control" value="{{ performance.artist.name }}" disabled>
+    </div>
+
+    <div class="mb-3">
+        <label>ステージ</label>
+        <select name="selected_stage" class="form-select">
+            {% for stage in stages %}
+                <option value="{{ stage.id }}" {% if stage.id == performance.stage.id %}selected{% endif %}>
+                    {{ stage.name }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label>開始時間</label>
+            <input type="time" name="start_time" class="form-control" value="{{ performance.start_time|time:'H:i' }}">
+        </div>
+        <div class="col-md-6">
+            <label>終了時間</label>
+            <input type="time" name="end_time" class="form-control" value="{{ performance.end_time|time:'H:i' }}">
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-success">保存</button>
+    <a href="{% url 'festival:timetable_view' %}" class="btn btn-secondary">戻る</a>
+</form>
+{% endblock %}

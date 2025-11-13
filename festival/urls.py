@@ -11,7 +11,7 @@ from .views.event_views import (
 )
 from .views.performance_views import (
     register_event_day_and_performances,
-    edit_event_day_performances,
+    edit_event_day_performances, edit_performance,
     paste_schedule_register, register_timetable, timetable_view
 )
 from .views.playlist_views import create_playlist_view, save_playlist_to_spotify_view
@@ -51,6 +51,7 @@ urlpatterns = [
     # タイムテーブル関連
     path('timetable/register/', register_timetable, name='register_timetable'),
     path('timetable/view/', timetable_view, name='timetable_view'),
+    path('timetable/edit/<int:performance_id>/', edit_performance, name='edit_performance'),
 
     # Spotify認証関連
     path('spotify/login/', spotify_login_view, name='spotify_login'),

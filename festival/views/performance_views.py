@@ -325,3 +325,29 @@ def timetable_view(request):
         'stages': stages,
     }
     return render(request, 'timetable_view.html', context)
+
+def edit_performance(request, performance_id):
+    """タイムテーブル修正ビュー"""
+    perf = get_object_or_404(Performance, id=performance_id)
+    stages = Stage.objects.filter(event=perf.event_day.event)
+
+    if request.method == 'POST':
+        selected_stage_id = request.POST.get('selected_stage')
+        start = request.POST.get('start_time')
+        end = request.POST.get('end_time')
+
+        if start and end and parse_time(start) >= parse_time(end):
+            messages.error(request, "開始時間は終了時間より前である必要があります。")
+        else:
+            perf.stage_id = selected_stage_id
+            perf.start_time = parse_time(start) if start else None
+            perf.end_time = parse_time(end) if end else None
+            perf.save()
+            messages.success(request, "タイムテーブルを更新しました！")
+            return redirect('festival:timetable_view')  # 表示画面に戻る
+
+    context = {
+        'performance': perf,
+        'stages': stages,
+    }
+    return render(request, 'edit_performance.html', context)
