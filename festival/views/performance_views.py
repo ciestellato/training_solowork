@@ -46,7 +46,7 @@ def register_event_day_and_performances(request):
                 venue=form.cleaned_data['venue']
             )
             for artist in form.cleaned_data['artists']:
-                Performance.objects.create(event_day=event_day, artist=artist, is_confirmed=True)
+                Performance.objects.create(event_day=event_day, artist=artist)
 
             # 成功メッセージをセッションに保存してリダイレクト（PRG）
             request.session['message'] = f"{event_day} に {form.cleaned_data['artists'].count()} 組の出演者を登録しました。"
@@ -105,7 +105,7 @@ def edit_event_day_performances(request, event_day_id):
             # 出演者情報を更新
             Performance.objects.filter(event_day=event_day).delete()
             for artist in form.cleaned_data['artists']:
-                Performance.objects.create(event_day=event_day, artist=artist, is_confirmed=True)
+                Performance.objects.create(event_day=event_day, artist=artist)
 
             # 成功メッセージをセッションに保存してリダイレクト
             request.session['message'] = f"{event_day} の出演者を更新しました。"
@@ -174,7 +174,7 @@ def paste_schedule_register(request):
                 try:
                     date = datetime.strptime(date_str, '%Y-%m-%d').date()
                     event_day = EventDay.objects.create(event=event, date=date, venue=venue)
-                    Performance.objects.create(event_day=event_day, artist=artist, is_confirmed=True)
+                    Performance.objects.create(event_day=event_day, artist=artist)
                     count += 1
                 except Exception:
                     continue  # 無効な行はスキップ
@@ -215,7 +215,7 @@ def get_event_schedule_json(request):
             event_day = EventDay.objects.create(event=event, date=date, venue=venue)
 
             for artist in artists:
-                Performance.objects.create(event_day=event_day, artist=artist, is_confirmed=True)
+                Performance.objects.create(event_day=event_day, artist=artist)
 
             message = f"{event_day} に {artists.count()} 組の出演者を登録しました。"
             form = EventDayPerformanceForm()  # フォームをリセット

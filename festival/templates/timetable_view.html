@@ -23,6 +23,18 @@
 {% if event_day %}
     <h2 class="mt-4">{{ event_day.date }} @ {{ event_day.venue }}</h2>
 
+    <!-- 日付切り替えリンク -->
+    <div class="mb-4">
+        <span class="fw-bold">他の日程：</span>
+        {% for day in event_days %}
+            {% if day.event.id == event_day.event.id and day.id != event_day.id %}
+                <a href="?event_day={{ day.id }}" class="btn btn-sm btn-outline-secondary me-2">
+                    {{ day.date }}
+                </a>
+            {% endif %}
+        {% endfor %}
+    </div>
+
     {% for stage in stages %}
         <div class="mt-5">
             <h4>🎤 {{ stage.name }}</h4>
@@ -34,7 +46,8 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for perf in stage.performance_set.all|dictsort:"start_time" %}
+                {% for perf in stage.performance_set.all|dictsort:"start_time" %}
+                    {% if perf.event_day.id == event_day.id %}
                         <tr>
                             <td>
                                 {% if perf.start_time and perf.end_time %}
@@ -48,9 +61,10 @@
                                 <a href="{% url 'festival:edit_performance' perf.id %}" class="btn btn-sm btn-outline-primary ms-2">編集</a>
                             </td>
                         </tr>
-                    {% empty %}
-                        <tr><td colspan="2">出演者未登録</td></tr>
-                    {% endfor %}
+                    {% endif %}
+                {% empty %}
+                    <tr><td colspan="2">出演者未登録</td></tr>
+                {% endfor %}
                 </tbody>
             </table>
         </div>
