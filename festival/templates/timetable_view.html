@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}タイムテーブル表示{% endblock %}
+
+{% block content %}
+<h1>🎪 タイムテーブル表示</h1>
+
+<!-- イベント日程選択 -->
+<form method="GET" class="mb-4">
+    <label for="event_day" class="form-label">イベント日程を選択</label>
+    <div class="input-group">
+        <select name="event_day" id="event_day" class="form-select">
+            {% for day in event_days %}
+                <option value="{{ day.id }}" {% if day.id|stringformat:"s" == selected_day_id %}selected{% endif %}>
+                    {{ day.date }} @ {{ day.venue }}
+                </option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-outline-primary">表示</button>
+    </div>
+</form>
+
+{% if event_day %}
+    <h2 class="mt-4">{{ event_day.date }} @ {{ event_day.venue }}</h2>
+
+    {% for stage in stages %}
+        <div class="mt-5">
+            <h4>🎤 {{ stage.name }}</h4>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>時間</th>
+                        <th>アーティスト</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for perf in stage.performance_set.all|dictsort:"start_time" %}
+                        <tr>
+                            <td>
+                                {% if perf.start_time and perf.end_time %}
+                                    {{ perf.start_time|time:"H:i" }} - {{ perf.end_time|time:"H:i" }}
+                                {% else %}
+                                    未定
+                                {% endif %}
+                            </td>
+                            <td>{{ perf.artist.name }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="2">出演者未登録</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<a href="{% url 'festival:event_list' %}" class="btn btn-secondary mt-4">イベント一覧へ戻る</a>
+{% endblock %}

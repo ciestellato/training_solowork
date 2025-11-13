@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}タイムテーブル登録{% endblock %}
+
+{% block content %}
+<h1>📅 タイムテーブル登録</h1>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} mt-3" role="alert">
+            {{ message|safe }}
+        </div>
+    {% endfor %}
+{% endif %}
+
+<!-- イベント日程選択 -->
+<form method="GET" class="mb-4">
+    <label for="event_day" class="form-label">イベント日程を選択</label>
+    <div class="input-group">
+        <select name="event_day" id="event_day" class="form-select">
+            {% for day in event_days %}
+                <option value="{{ day.id }}" {% if day.id|stringformat:"s" == selected_day_id %}selected{% endif %}>
+                    {{ day.date }} @ {{ day.venue }}
+                </option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-outline-primary">表示</button>
+    </div>
+</form>
+
+{% if event_day %}
+    <!-- ステージ選択 + 出演者チェック -->
+    <form method="POST" class="mb-5">
+        {% csrf_token %}
+        <label class="form-label">出演アーティストを選択</label>
+        <input type="text" class="form-control mb-2" placeholder="アーティスト名で絞り込み" id="artistSearch">
+        <div class="border p-3 mb-3" style="max-height: 300px; overflow-y: scroll;">
+            {% for artist in artists %}
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="selected_artists" value="{{ artist.id }}"
+                           id="artist_{{ artist.id }}" {% if artist.id|stringformat:"s" in selected_artist_ids %}checked{% endif %}>
+                    <label class="form-check-label" for="artist_{{ artist.id }}">{{ artist.name }}</label>
+                </div>
+            {% endfor %}
+        </div>
+
+        <button type="submit" name="prepare_times" class="btn btn-primary">時間入力へ進む</button>
+    </form>
+
+    <!-- 時間入力フォーム -->
+    {% if selected_artist_ids %}
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="selected_stage" value="{{ selected_stage_id }}">
+
+            <label class="form-label">ステージを選択または新規入力</label>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <select name="selected_stage" class="form-select">
+                        <option value="">（未選択）</option>
+                        {% for stage in stages %}
+                            <option value="{{ stage.id }}" {% if stage.id|stringformat:"s" == selected_stage_id %}selected{% endif %}>
+                                {{ stage.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <input type="text" name="new_stage_name" class="form-control" placeholder="新しいステージ名を入力">
+                </div>
+            </div>
+
+            {% for artist_id in selected_artist_ids %}
+                <input type="hidden" name="selected_artists" value="{{ artist_id }}">
+                {% with artist=artists|get_by_id:artist_id %}
+                <div class="border p-3 mb-3">
+                    <h5>{{ artist.name }}</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label>開始時間</label>
+                            <input type="time" name="start_{{ artist.id }}" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label>終了時間</label>
+                            <input type="time" name="end_{{ artist.id }}" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                {% endwith %}
+            {% endfor %}
+            <button type="submit" name="save_times" class="btn btn-success mt-3">タイムテーブルを保存する</button>
+        </form>
+    {% endif %}
+
+    {% if form_errors %}
+        <div class="alert alert-danger mt-4">
+            <strong>エラーがあります：</strong>
+            <ul>
+                {% for error in form_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+{% endif %}
+
+<a href="{% url 'festival:event_list' %}" class="btn btn-secondary mt-4">イベント一覧へ戻る</a>
+
+<script>
+    document.getElementById('artistSearch').addEventListener('input', function () {
+        const keyword = this.value.toLowerCase();
+        document.querySelectorAll('.form-check').forEach(cb => {
+            const label = cb.textContent.toLowerCase();
+            cb.style.display = label.includes(keyword) ? 'block' : 'none';
+        });
+    });
+</script>
+{% endblock %}

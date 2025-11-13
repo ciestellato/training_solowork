@@ -27,6 +27,8 @@ class Artist(models.Model):
     popularity = models.IntegerField(null=True, blank=True)
     genres = models.JSONField(default=list, blank=True)
     spotify_id = models.CharField(max_length=100, unique=True)
+    image_url = models.URLField(blank=True, null=True)
+    twitter_url = models.URLField(blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -42,22 +44,28 @@ class EventDay(models.Model):
 
     def __str__(self):
         return f"{self.event.name} - {self.date} @ {self.venue}"
+    
+    class Meta:
+        unique_together = ('event', 'date', 'venue')
 
-class Performance(models.Model):
-    """出演情報クラス"""
-    event_day = models.ForeignKey(EventDay, on_delete=models.CASCADE)
-    artist = models.ForeignKey(Artist, on_delete=models.CASCADE)
-    is_confirmed = models.BooleanField(default=False)
+class Stage(models.Model):
+    """イベント内のステージ情報"""
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
 
     def __str__(self):
-        return f"{self.artist.name} @ {self.event_day}"
+        return f"{self.event.name} - {self.name}"
 
-class RelatedArtist(models.Model):
-    artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='base_artist')
-    related_artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='similar_to')
-    similarity_score = models.FloatField()
-
-class ManualEntry(models.Model):
-    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+class Performance(models.Model):
+    """出演情報クラス（ステージ・出演時間付き）"""
+    event_day = models.ForeignKey(EventDay, on_delete=models.CASCADE)
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE)
-    notes = models.TextField(blank=True)
+    stage = models.ForeignKey(Stage, on_delete=models.SET_NULL, null=True, blank=True)
+    start_time = models.TimeField(null=True, blank=True)
+    end_time = models.TimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.artist.name} @ {self.event_day} ({self.stage})"
+
+    class Meta:
+        unique_together = ('event_day', 'artist')

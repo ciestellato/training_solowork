@@ -12,7 +12,7 @@ from .views.event_views import (
 from .views.performance_views import (
     register_event_day_and_performances,
     edit_event_day_performances,
-    paste_schedule_register
+    paste_schedule_register, register_timetable, timetable_view
 )
 from .views.playlist_views import create_playlist_view, save_playlist_to_spotify_view
 from .views.spotify_auth_views import spotify_login_view, spotify_callback_view
@@ -47,6 +47,10 @@ urlpatterns = [
     # プレイリスト関連
     path('playlist/create/', create_playlist_view, name='create_playlist'),
     path('playlist/save/', save_playlist_to_spotify_view, name='save_playlist_to_spotify'),
+
+    # タイムテーブル関連
+    path('timetable/register/', register_timetable, name='register_timetable'),
+    path('timetable/view/', timetable_view, name='timetable_view'),
 
     # Spotify認証関連
     path('spotify/login/', spotify_login_view, name='spotify_login'),

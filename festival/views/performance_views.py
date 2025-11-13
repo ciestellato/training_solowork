@@ -1,9 +1,11 @@
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib import messages
 from django.shortcuts import render, get_object_or_404, redirect
-from django.utils.dateparse import parse_date
+from django.utils.dateparse import parse_time
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import Q
 
-from ..models import Event, EventDay, Performance
+from ..models import Event, EventDay, Performance, Stage, Artist
 from ..forms import EventDayPerformanceForm, ArtistSchedulePasteForm
 
 import json
@@ -238,3 +240,88 @@ def generate_event_date_choices(event):
         choices.append((date_str, date_str))
         current += timedelta(days=1)
     return choices
+
+def register_timetable(request):
+    """タイムテーブル登録"""
+    event_day_id = request.GET.get('event_day')
+    event_day = get_object_or_404(EventDay, id=event_day_id) if event_day_id else None
+    stages = Stage.objects.filter(event=event_day.event) if event_day else []
+    form_errors = []
+    selected_artist_ids = []
+    selected_stage_id = None
+
+    # 出演時間未登録のアーティストのみ表示
+    artists = Artist.objects.filter(
+        performance__event_day=event_day
+    ).filter(
+        Q(performance__start_time__isnull=True) | Q(performance__end_time__isnull=True)
+    ).distinct() if event_day else []
+
+    if request.method == 'POST':
+        selected_artist_ids = request.POST.getlist('selected_artists')
+        selected_stage_id = request.POST.get('selected_stage')
+        new_stage_name = request.POST.get('new_stage_name')
+
+        # ステージ選択または新規作成
+        if new_stage_name:
+            stage = Stage.objects.create(event=event_day.event, name=new_stage_name)
+        elif selected_stage_id:
+            stage = Stage.objects.filter(id=selected_stage_id).first()
+        else:
+            stage = None
+
+        if 'save_times' in request.POST:
+            for artist_id in selected_artist_ids:
+                start = request.POST.get(f'start_{artist_id}')
+                end = request.POST.get(f'end_{artist_id}')
+
+                # バリデーション
+                if start and end and parse_time(start) >= parse_time(end):
+                    artist = Artist.objects.filter(id=artist_id).first()
+                    form_errors.append(f"{artist.name} の開始時間は終了時間より前である必要があります。")
+                    continue
+
+                # Performance取得または作成
+                perf, _ = Performance.objects.get_or_create(
+                    event_day=event_day,
+                    artist_id=artist_id
+                )
+
+                perf.stage = stage
+                perf.start_time = parse_time(start) if start else None
+                perf.end_time = parse_time(end) if end else None
+                perf.save()
+
+            if not form_errors:
+                messages.success(request, "タイムテーブルを保存しました！")
+                return redirect(request.path + f"?event_day={event_day_id}")
+
+    context = {
+        'event_days': EventDay.objects.order_by('date'),
+        'selected_day_id': event_day_id,
+        'event_day': event_day,
+        'stages': stages,
+        'artists': artists,
+        'selected_artist_ids': selected_artist_ids,
+        'selected_stage_id': selected_stage_id,
+        'form_errors': form_errors,
+    }
+    return render(request, 'timetable_register.html', context)
+
+def timetable_view(request):
+    """タイムテーブル表示機能"""
+    event_day_id = request.GET.get('event_day')
+    event_day = None
+    stages = []
+
+    if event_day_id:
+        event_day = get_object_or_404(EventDay, id=event_day_id)
+        stages = Stage.objects.filter(event=event_day.event)
+
+    context = {
+        'event_days': EventDay.objects.order_by('date'),
+        'selected_day_id': event_day_id,
+        'event_day': event_day,
+        'stages': stages,
+    }
+    return render(request, 'timetable_view.html', context)
