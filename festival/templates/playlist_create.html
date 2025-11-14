@@ -13,25 +13,18 @@
     {% endfor %}
 {% endif %}
 
-<!-- イベント日程選択（GET） -->
-<form method="GET" class="mb-4">
-    <label for="event_day" class="form-label">イベント日程を選択</label>
-    <div class="input-group">
-        <select name="event_day" id="event_day" class="form-select">
-            {% for day in event_days %}
-                <option value="{{ day.id }}" {% if day.id|stringformat:"s" == selected_day_id %}selected{% endif %}>
-                    {{ day.date }} @ {{ day.venue }}
-                </option>
-            {% endfor %}
-        </select>
-        <button type="submit" class="btn btn-outline-primary">出演者を表示</button>
-    </div>
-</form>
+<!-- イベント情報表示 -->
+<div class="mb-4">
+    <p><strong>イベント:</strong> {{ playlist_name }}</p>
+    <input type="hidden" name="event_day" value="{{ selected_day_id }}">
+</div>
 
 {% if form %}
-<!-- 出演アーティスト選択（POST） -->
 <form method="POST">
     {% csrf_token %}
+    <input type="hidden" name="event_day" value="{{ selected_day_id }}">
+    <input type="hidden" name="playlist_name" value="{{ playlist_name }}">
+
     {% if form.errors %}
         <div class="alert alert-danger">
             <strong>エラーがあります：</strong>
@@ -53,18 +46,19 @@
         </div>
     </div>
 
-    <label for="track_count">1組あたりの保存曲数:</label>
-    <select id="track_count" name="track_count" class="form-select w-auto">
-        {% for i in "123456789" %}
-            <option value="{{ i }}" {% if i == selected_track_count %}selected{% endif %}>{{ i }}</option>
-        {% endfor %}
-    </select>
+    <div class="mb-3">
+        <label for="track_count">1組あたりの保存曲数:</label>
+        <select id="track_count" name="track_count" class="form-select w-auto">
+            {% for i in "123456789" %}
+                <option value="{{ i }}" {% if i == selected_track_count %}selected{% endif %}>{{ i }}</option>
+            {% endfor %}
+        </select>
+    </div>
 
-    <button type="submit" class="btn btn-primary mt-3">プレイリストを作成する</button>
+    <button type="submit" class="btn btn-primary">プレイリストを作成する</button>
 </form>
 {% endif %}
 
-<!-- 結果表示 -->
 {% if playlist %}
     <hr>
     <h2 class="mt-4">🎶 プレイリスト（{{ track_uris|length }}曲）</h2>
@@ -84,11 +78,11 @@
             {% endfor %}
         </ul>
 
-        <!-- Spotify保存ボタン -->
         <form method="POST" action="{% url 'festival:save_playlist_to_spotify' %}">
             {% csrf_token %}
             <input type="hidden" name="track_uris" value="{{ track_uris|join:',' }}">
             <input type="hidden" name="playlist_name" value="{{ playlist_name }}">
+            <input type="hidden" name="event_day" value="{{ selected_day_id }}">
             <button type="submit" class="btn btn-success mt-4">🎵 Spotifyに保存する</button>
         </form>
     {% endif %}

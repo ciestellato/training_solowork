@@ -1,77 +1,71 @@
-# 🎧 (名称未定) — 音楽フェス予習プレイリスト作成アプリ
+# 🎧 音楽フェス予習プレイリスト作成＆タイムテーブル管理アプリ（名称未定）
 
-## 🧭 プロジェクト概要
+## 🎯 目的
 
-**目的**  
-音楽フェスティバルの出演アーティスト情報を管理するWebアプリケーションを構築し、ユーザーと管理者が情報を閲覧・登録・検索できる環境を提供します。
-
-**主な機能**  
-- イベント・アーティスト情報の管理（一覧・詳細・検索）
-- Spotify APIからアーティスト情報取得・保存
-<!-- - 類似アーティスト・出演予測ロジック（Spotify API仕様変更により頓挫） -->
-- 管理画面による手動登録・修正
-- 予習用プレイリスト作成機能
-- タイムテーブル登録・表示・編集機能（2025/11/13追加）
+- 音楽フェスティバルやライブイベントの**タイムテーブルを視覚的に管理・表示**できるWebアプリケーションを構築する  
+- 管理者が出演者情報やステージ構成を柔軟に編集でき、ユーザーが見やすくイベント全体を把握できるUIを提供する  
+- Spotify連携により、**出演アーティストの代表曲を使った予習プレイリストを自動生成・保存**できる  
+- ステージカラーや並び順など、イベントごとの個性を反映できる**カスタマイズ性の高い設計**を目指す
 
 ---
 
-## 🛠 技術構成
+## 🧩 構成
 
-| 項目         | 使用技術                          |
-|--------------|-----------------------------------|
-| フレームワーク | Django                            |
-| 言語         | Python, HTML, CSS, JavaScript     |
-| データベース | SQLite（Django ORM）              |
-| 外部API      | Spotify Web API（Client Credentials Flow） |
-| バージョン管理 | GitHub                            |
-| 環境管理     | `.env` + `python-dotenv`          |
+### モデル設計（Django ORM）
 
----
+| モデル名     | 役割 |
+|--------------|------|
+| `Event`      | イベント全体（フェス、ツアーなど） |
+| `EventDay`   | 公演日＋会場 |
+| `Stage`      | ステージ情報（並び順・カラー付き） |
+| `Artist`     | アーティスト情報（Spotify連携あり） |
+| `Performance`| 出演情報（ステージ・時間帯） |
 
-## ⚙️ セットアップ手順
+- `Stage` モデルに `order`（並び順）と `color_code`（カラーコード）を追加
+- `Artist` モデルは Spotify ID を保持し、API連携で代表曲を取得可能
+- `EventDay` 経由でプレイリスト作成対象を固定できる設計
 
-```bash
-# 仮想環境の作成と起動
-python -m venv venv
-source venv/bin/activate  # Windowsの場合: venv\Scripts\activate
+### テンプレート構成
 
-# 必要パッケージのインストール
-pip install -r requirements.txt
+- `base.html`: 共通レイアウト（ナビバー、CSS・JS読み込みブロックあり）
+- `timetable_view.html`: タイムテーブル表示ページ（ステージごとの色分け、時間スロット制御）
+- `playlist_create.html`: 出演アーティスト選択＋Spotify連携プレイリスト作成画面
 
-# 環境変数の設定
-touch .env
-# .env に以下を記述
-# SPOTIFY_CLIENT_ID=your_client_id
-# SPOTIFY_CLIENT_SECRET=your_client_secret
+### スタイル（CSS）
 
-# マイグレーションと起動
-python manage.py makemigrations
-python manage.py migrate
-python manage.py runserver
-```
+- スロット間の余白をなくし、出演者のブロックをひとかたまりに見せる
+- ステージ間には区切り線を表示
+- 出演者が複数スロットにまたがる場合は、最初のスロットのみ表示し、以降は背景色のみ
+- ステージカラーは `Stage.color_code` に基づいて反映
 
 ---
 
-## 🗂️ 機能概要
+## 🚧 進捗
 
-### 🎵 アーティスト管理
-- 一覧表示（ListView）
-- 詳細表示（DetailView）
-- 検索機能（クエリパラメータ or フォーム）
-- Spotify API連携による一括登録
+| 項目 | 状況 |
+|------|------|
+| モデル設計 | ✅ 完了（Stage拡張・Spotify対応含む） |
+| 管理画面対応 | ✅ 完了（並び順・カラー編集可能） |
+| タイムテーブル表示 | ✅ 完了（時間・ステージごとの表示制御） |
+| CSS調整 | ✅ 完了（余白・高さ・色分け対応） |
+| スロット統合表示 | ✅ 完了（rowspan未使用） |
+| ステージカラー反映 | ✅ 完了（ステージ名＋出演スロット） |
+| Spotify認証 | ✅ 完了（OAuth2.0＋トークン管理） |
+| プレイリスト作成 | ✅ 完了（イベント日程固定＋代表曲取得） |
+| Spotify保存 | ✅ 完了（トークンリフレッシュ＋保存後リダイレクト） |
 
-### 📅 イベント管理
-- 一覧表示（開催日順）
-- 詳細表示（出演者・会場・日程）
-- 管理者向け登録フォーム（JSによる日付選択）
+---
+
+## 📝 成果物
 
 ### 🎧 プレイリスト作成機能
-- イベント日程と出演アーティストを選択
-- Spotify APIから代表曲を取得
-- プレイリストとして画面表示（曲名・アーティスト名・Spotifyリンク）
-- Spotify連携によるプレイリスト保存機能
+- イベント詳細ページからプレイリスト作成画面へ遷移
+- 出演アーティストをチェックボックスで選択
+- Spotify APIから代表曲を取得し、画面に表示
+- 「Spotifyに保存する」ボタンでプレイリストをユーザーのSpotifyアカウントに保存
+- トークンの期限切れにも自動対応（リフレッシュ処理）
 
-### 🕒 タイムテーブル管理機能（2025/11/13追加）
+### 🕒 タイムテーブル管理機能
 - 出演アーティスト・ステージ・時間の登録（未登録アーティストのみ表示）
 - ステージの選択または新規作成に対応
 - 開始・終了時間のバリデーション（開始 < 終了）
@@ -93,6 +87,7 @@ festival/
 ├── admin.py
 ├── urls.py
 ├── templates/
+│   ├── base.html
 │   ├── artist_list.html
 │   ├── artist_detail.html
 │   ├── event_list.html
@@ -103,11 +98,12 @@ festival/
 │   ├── timetable_view.html
 │   └── edit_performance.html
 ├── views/
+│   ├── base_views.py
 │   ├── artist_views.py
 │   ├── event_views.py
-│   ├── base_views.py
 │   ├── performance_views.py
-│   └── playlist_views.py
+│   ├── playlist_views.py
+│   └── spotify_auth_views.py
 ├── forms.py
 ├── utils/
 │   ├── text_utils.py
@@ -118,20 +114,38 @@ festival/
 
 ---
 
-## 🧪 テスト・デバッグ
+## ⚙️ セットアップ手順
 
-- Djangoのテストフレームワークを使用予定
-- 管理画面・API連携・検索機能の動作確認済み
-- プレイリスト作成機能の動作確認済み
-- タイムテーブル登録・表示・編集機能の動作確認済み
-- UI調整・Bootstrap導入は今後の課題
+```bash
+# 仮想環境の作成と起動
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# 必要パッケージのインストール
+pip install -r requirements.txt
+
+# 環境変数の設定
+touch .env
+# .env に以下を記述
+SPOTIFY_CLIENT_ID=your_client_id
+SPOTIFY_CLIENT_SECRET=your_client_secret
+
+# マイグレーションと起動
+python manage.py makemigrations
+python manage.py migrate
+python manage.py runserver 8888
+```
 
 ---
 
 ## 📌 今後の予定
 
-<!-- - 類似アーティスト予測ロジックの実装 -->
-- ユーザー認証・お気に入りアーティスト保存機能
-- UI改善（Bootstrap強化、検索結果の表示調整）
-- タイムテーブルPDF出力機能
-- 出演者ごとの出演履歴表示
+| 機能 | 内容 |
+|------|------|
+| 認証 | ユーザー認証・お気に入りアーティスト保存 |
+| UI改善 | Bootstrap強化・検索結果の表示調整 |
+| 出力 | タイムテーブルPDF出力機能 |
+| 履歴 | 出演者ごとの出演履歴表示 |
+| その他 | 類似アーティスト予測（Spotify仕様次第で再検討） |
+
+---

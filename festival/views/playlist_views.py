@@ -3,8 +3,10 @@ import time
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.conf import settings
+from django.urls import reverse
+from django.utils.http import urlencode
 
-from festival.models import EventDay, Performance, Artist
+from festival.models import EventDay, Artist
 from festival.forms import PlaylistForm
 from festival.utils.spotify_utils import get_top_tracks, save_playlist_to_spotify
 
@@ -12,16 +14,20 @@ from spotipy.oauth2 import SpotifyOAuth
 
 def create_playlist_view(request):
     """出演アーティストを選択してSpotifyプレイリストを生成するビュー"""
-    # 初期化
-    selected_day_id = request.GET.get('event_day')
-    selected_day = EventDay.objects.filter(id=selected_day_id).first()
+
+    selected_day_id = request.GET.get('event_day') or request.POST.get('event_day')
+    if not selected_day_id:
+        messages.error(request, "⚠️ イベント日程が指定されていません。イベント詳細ページからプレイリスト作成に進んでください。")
+        return redirect("festival:fes_event_list")
+
+    event_day = get_object_or_404(EventDay.objects.select_related('event'), id=selected_day_id)
+
     playlist = []
     track_uris = []
     track_count = 1
     can_save_to_spotify = True
 
-    # 出演アーティスト一覧（チェックボックス表示用）
-    artists_qs = Artist.objects.filter(performance__event_day=selected_day).distinct() if selected_day else Artist.objects.none()
+    artists_qs = Artist.objects.filter(performance__event_day=event_day).distinct()
 
     if request.method == 'POST':
         form = PlaylistForm(request.POST, artists_queryset=artists_qs)
@@ -29,8 +35,6 @@ def create_playlist_view(request):
             track_count = int(request.POST.get("track_count", 1))
             selected_artists = form.cleaned_data['artists']
             total_tracks = len(selected_artists) * track_count
-
-            # Spotify保存制限チェック
             can_save_to_spotify = total_tracks <= 100
 
             for artist in selected_artists:
@@ -46,20 +50,14 @@ def create_playlist_view(request):
     else:
         form = PlaylistForm(artists_queryset=artists_qs)
 
-    # イベント日程一覧（セレクトボックス用）
-    event_days = EventDay.objects.select_related('event').order_by('date')
-
-    event_day = EventDay.objects.select_related('event').filter(id=selected_day_id).first()
-    event_name = event_day.event.name if event_day else "Festival"
-    event_date = event_day.date.strftime("%Y%m%d") if event_day else "Unknown"
-
+    event_name = event_day.event.name
+    event_date = event_day.date.strftime("%Y%m%d")
     playlist_name = f"{event_name} {event_date} 予習リスト"
-    
+
     return render(request, 'playlist_create.html', {
         'form': form,
         'playlist': playlist,
         'track_uris': track_uris,
-        'event_days': event_days,
         'selected_day_id': selected_day_id,
         'playlist_name': playlist_name,
         'selected_track_count': str(track_count),
@@ -89,6 +87,7 @@ def save_playlist_to_spotify_view(request):
         token = token_info["access_token"]
         track_uris = request.POST.get("track_uris", "").split(",")
         playlist_name = request.POST.get("playlist_name", "フェス予習プレイリスト")
+        selected_day_id = request.POST.get("event_day")
 
         if token and track_uris:
             playlist_url = save_playlist_to_spotify(token, track_uris, playlist_name)
@@ -99,5 +98,10 @@ def save_playlist_to_spotify_view(request):
         else:
             messages.error(request, "⚠️ Spotify認証が必要です")
             return redirect("festival:spotify_login")
+
+        # 保存後に元のイベント日程に戻る
+        base_url = reverse("festival:create_playlist")
+        query_string = urlencode({"event_day": selected_day_id})
+        return redirect(f"{base_url}?{query_string}")
 
     return redirect("festival:create_playlist")
