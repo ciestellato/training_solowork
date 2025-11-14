@@ -53,8 +53,34 @@ class Stage(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
 
+    # 並び順を任意に指定
+    order = models.PositiveIntegerField(default=0, help_text="タイムテーブル上の表示順")
+
+    # カラーパレット選択（選択肢は管理画面でプルダウン表示）
+    COLOR_CHOICES = [
+        ("#e3f2fd", "青系"),
+        ("#fce4ec", "ピンク系"),
+        ("#e8f5e9", "緑系"),
+        ("#fff3e0", "オレンジ系"),
+        ("#ede7f6", "紫系"),
+        ("#f3e5f5", "ラベンダー系"),
+        ("#f9fbe7", "ライム系"),
+        ("#e0f7fa", "シアン系"),
+        ("#fbe9e7", "サーモン系"),
+        ("#f5f5f5", "グレー系"),
+    ]
+    color_code = models.CharField(
+        max_length=7,
+        choices=COLOR_CHOICES,
+        default="#e3f2fd",
+        help_text="ステージカラー（タイムテーブル背景色）"
+    )
+
     def __str__(self):
         return f"{self.event.name} - {self.name}"
+
+    class Meta:
+        ordering = ['order']  # 表示順を制御
 
 class Performance(models.Model):
     """出演情報クラス（ステージ・出演時間付き）"""

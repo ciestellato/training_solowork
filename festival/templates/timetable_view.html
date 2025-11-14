@@ -46,7 +46,7 @@
             <tr>
                 <th>時間</th>
                 {% for stage in stages %}
-                    <th>{{ stage.name }}</th>
+                    <th style="background-color: {{ stage.color_code }};">{{ stage.name }}</th>
                 {% endfor %}
             </tr>
         </thead>
@@ -59,20 +59,26 @@
                         {% endif %}
                     </td>
                     {% for stage in stages %}
-                        <td>
-                            {% for perf in performances_by_stage_and_time|get_item:stage.id|get_item:time %}
-                                {% if first_slot_map|get_item:perf == time %}
-                                    <div class="artist-block">
-                                        {{ perf.artist.name }} ({{ perf.start_time|time:"H:i" }} - {{ perf.end_time|time:"H:i" }})
-                                        {% if request.user.is_staff %}
-                                            <a href="{% url 'festival:edit_performance' perf.id %}" class="btn btn-sm btn-outline-primary edit-btn">編集</a>
+                        {% with perf_list=performances_by_stage_and_time|get_item:stage.id|get_item:time %}
+                            {% if perf_list %}
+                                <td>
+                                    {% for perf in perf_list %}
+                                        {% if first_slot_map|get_item:perf == time %}
+                                            <div class="artist-block" style="background-color: {{ stage.color_code }};">
+                                                {{ perf.artist.name }}{{ perf.start_time|time:"H:i" }} - {{ perf.end_time|time:"H:i" }}
+                                                {% if request.user.is_staff %}
+                                                    <a href="{% url 'festival:edit_performance' perf.id %}" class="btn btn-sm btn-outline-primary edit-btn">編集</a>
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <div class="artist-block muted-block" style="background-color: {{ stage.color_code }};">&nbsp;</div>
                                         {% endif %}
-                                    </div>
-                                {% else %}
-                                    <div class="artist-block muted-block">&nbsp;</div>
-                                {% endif %}
-                            {% endfor %}
-                        </td>
+                                    {% endfor %}
+                                </td>
+                            {% else %}
+                                <td></td>
+                            {% endif %}
+                        {% endwith %}
                     {% endfor %}
                 </tr>
             {% endfor %}

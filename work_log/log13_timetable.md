@@ -791,7 +791,203 @@ context = {
 }
 ```
 
+ステージの並び順とカラーを**任意に管理できるようにする**ことで、イベントごとの個性や視認性を柔軟に表現できます。以下に、**モデル修正・管理画面対応・テンプレート連携**まで含めた設計案をまとめました。
+
 ---
 
-このCSSを適用すれば、タイムテーブルがより視覚的に整理され、出演者のまとまりやステージ間の区切りが自然に伝わるようになります。  
-さらに見た目を強化したい場合は、ステージごとの色分けや現在時刻のハイライトなども追加できますよ。必要ならそのCSSもすぐにご用意できます！
+## 🧱 モデル修正案：Stageモデルの拡張
+
+```python
+class Stage(models.Model):
+    """イベント内のステージ情報"""
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+
+    # 並び順を任意に指定
+    order = models.PositiveIntegerField(default=0, help_text="タイムテーブル上の表示順")
+
+    # カラーパレット選択（選択肢は管理画面でプルダウン表示）
+    COLOR_CHOICES = [
+        ("#e3f2fd", "青系"),
+        ("#fce4ec", "ピンク系"),
+        ("#e8f5e9", "緑系"),
+        ("#fff3e0", "オレンジ系"),
+        ("#ede7f6", "紫系"),
+        ("#f3e5f5", "ラベンダー系"),
+        ("#f9fbe7", "ライム系"),
+        ("#e0f7fa", "シアン系"),
+        ("#fbe9e7", "サーモン系"),
+        ("#f5f5f5", "グレー系"),
+    ]
+    color_code = models.CharField(
+        max_length=7,
+        choices=COLOR_CHOICES,
+        default="#e3f2fd",
+        help_text="ステージカラー（タイムテーブル背景色）"
+    )
+
+    def __str__(self):
+        return f"{self.event.name} - {self.name}"
+
+    class Meta:
+        ordering = ['order']  # 表示順を制御
+```
+
+---
+
+## 🛠 管理画面対応（admin.py）
+
+```python
+from django.contrib import admin
+from .models import Stage
+
+@admin.register(Stage)
+class StageAdmin(admin.ModelAdmin):
+    list_display = ('name', 'event', 'order', 'color_code')
+    list_filter = ('event',)
+    ordering = ('event', 'order')
+    fields = ('event', 'name', 'order', 'color_code')
+```
+
+→ 管理画面で**プルダウンで色選択**＋**並び順の数値指定**が可能になります。
+
+---
+
+## 🎨 テンプレートで色と順序を反映
+
+### ビュー側：
+
+```python
+stages = Stage.objects.filter(event=event_day.event).order_by('order')
+```
+
+### テンプレート側：
+
+```django
+<td style="background-color: {{ stage.color_code }};">
+    ...
+</td>
+```
+
+---
+
+## ✅ まとめ
+
+この設計により：
+
+- ステージの並び順をイベントごとに自由に設定可能（数値で制御）
+- カラーパレットを人が選べる（プルダウンで視覚的に選択）
+- タイムテーブルの見た目がイベントの世界観に沿って調整可能
+
+以下のようにテンプレートを修正すれば、**ステージ名の見出しセル**と**出演者がいるスロット**にだけ `stage.color_code` を反映し、**出演者がいないスロットは通常の背景色のまま**になります。
+
+---
+
+## ✅ 修正済みテンプレート（`timetable_view.html`）
+
+```django
+{% extends 'base.html' %}
+{% load custom_filters %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/timetable.css' %}">
+{% endblock %}
+
+{% block title %}タイムテーブル表示{% endblock %}
+
+{% block content %}
+<h1>🎪 タイムテーブル表示</h1>
+
+<!-- イベント日程選択 -->
+<form method="GET" class="mb-4">
+    <label for="event_day" class="form-label">イベント日程を選択</label>
+    <div class="input-group">
+        <select name="event_day" id="event_day" class="form-select">
+            {% for day in event_days %}
+                <option value="{{ day.id }}" {% if day.id|stringformat:"s" == selected_day_id %}selected{% endif %}>
+                    {{ day.date }} @ {{ day.venue }}
+                </option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-outline-primary">表示</button>
+    </div>
+</form>
+
+{% if event_day %}
+    <h2 class="mt-4">{{ event_day.date }} @ {{ event_day.venue }}</h2>
+
+    <!-- 日付切り替えリンク -->
+    <div class="mb-4">
+        <span class="fw-bold">他の日程：</span>
+        {% for day in event_days %}
+            {% if day.event.id == event_day.event.id and day.id != event_day.id %}
+                <a href="?event_day={{ day.id }}" class="btn btn-sm btn-outline-secondary me-2">
+                    {{ day.date }}
+                </a>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <table class="table table-bordered timetable-grid">
+        <thead>
+            <tr>
+                <th>時間</th>
+                {% for stage in stages %}
+                    <th style="background-color: {{ stage.color_code }};">{{ stage.name }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for time in time_slots %}
+                <tr>
+                    <td class="time-cell">
+                        {% if time.minute == 0 %}
+                            {{ time|time:"H:i" }}
+                        {% endif %}
+                    </td>
+                    {% for stage in stages %}
+                        {% with perf_list=performances_by_stage_and_time|get_item:stage.id|get_item:time %}
+                            {% if perf_list %}
+                                <td style="background-color: {{ stage.color_code }};">
+                                    {% for perf in perf_list %}
+                                        {% if first_slot_map|get_item:perf == time %}
+                                            <div class="artist-block">
+                                                {{ perf.artist.name }}<br>
+                                                <small>{{ perf.start_time|time:"H:i" }} - {{ perf.end_time|time:"H:i" }}</small>
+                                                {% if request.user.is_staff %}
+                                                    <a href="{% url 'festival:edit_performance' perf.id %}" class="btn btn-sm btn-outline-primary edit-btn">編集</a>
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <div class="artist-block muted-block">&nbsp;</div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </td>
+                            {% else %}
+                                <td></td>
+                            {% endif %}
+                        {% endwith %}
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+
+<a href="{% url 'festival:event_list' %}" class="btn btn-secondary mt-4">イベント一覧へ戻る</a>
+{% endblock %}
+```
+
+---
+
+## ✅ ポイントまとめ
+
+- `<th style="background-color: {{ stage.color_code }};">` → ステージ名の背景色に反映
+- `<td style="background-color: {{ stage.color_code }};">` → 出演者がいるスロットだけ色を適用
+- `{% if perf_list %}` → 出演者がいるかどうかで色付きセルと空白セルを分岐
+
+---
+
+このテンプレートで、**ステージカラーが見出しと出演スロットにだけ反映され、空き時間は通常背景のまま**になります。  
+さらに色の濃淡や文字色の調整も可能です。必要であればCSS側も一緒に整えましょう！

@@ -344,6 +344,9 @@ def timetable_view(request):
                         if perf not in first_slot_map:
                             if slot == perf.start_time:
                                 first_slot_map[perf] = slot
+    
+    # ステージ並び順
+    stages = Stage.objects.filter(event=event_day.event).order_by('order')
 
     context = {
         'event_days': EventDay.objects.order_by('date'),

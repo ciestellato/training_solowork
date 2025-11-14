@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Artist, Event, Performance, EventDay
+from .models import Artist, Event, Performance, EventDay, Stage
 
 # Register your models here.
 @admin.register(Artist)
@@ -26,3 +26,10 @@ class PerformanceAdmin(admin.ModelAdmin):
     list_display = ('event_day', 'artist')
     list_filter = ('event_day__event', 'artist')
     search_fields = ('artist__name', 'event_day__event__name')
+
+@admin.register(Stage)
+class StageAdmin(admin.ModelAdmin):
+    list_display = ('name', 'event', 'order', 'color_code')
+    list_filter = ('event',)
+    ordering = ('event', 'order')
+    fields = ('event', 'name', 'order', 'color_code')
