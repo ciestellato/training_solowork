@@ -1,5 +1,10 @@
 {% extends 'base.html' %}
 {% load custom_filters %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/timetable.css' %}">
+{% endblock %}
 
 {% block title %}タイムテーブル表示{% endblock %}
 
@@ -52,11 +57,13 @@
                     {% for stage in stages %}
                         <td>
                             {% for perf in performances_by_stage_and_time|get_item:stage.id|get_item:time %}
-                                {{ perf.artist.name }}<br>
-                                <small>{{ perf.start_time|time:"H:i" }} - {{ perf.end_time|time:"H:i" }}</small>
-                                {% if request.user.is_staff %}
-                                    <a href="{% url 'festival:edit_performance' perf.id %}" class="btn btn-sm btn-outline-primary">編集</a>
-                                {% endif %}
+                                <div class="artist-block">
+                                    {{ perf.artist.name }}<br>
+                                    <small>{{ perf.start_time|time:"H:i" }} - {{ perf.end_time|time:"H:i" }}</small>
+                                    {% if request.user.is_staff %}
+                                        <a href="{% url 'festival:edit_performance' perf.id %}" class="btn btn-sm btn-outline-primary edit-btn">編集</a>
+                                    {% endif %}
+                                </div>
                             {% endfor %}
                         </td>
                     {% endfor %}

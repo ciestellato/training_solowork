@@ -1,0 +1,48 @@
+/* タイムテーブル全体 */
+.timetable-grid {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+/* ヘッダー */
+.timetable-grid thead th {
+    background-color: #f8f9fa;
+    text-align: center;
+    padding: 8px;
+    border: 1px solid #dee2e6;
+}
+
+/* 時間列 */
+.timetable-grid tbody td:first-child {
+    background-color: #f0f0f0;
+    font-weight: bold;
+    text-align: center;
+    width: 80px;
+}
+
+/* 各ステージ列 */
+.timetable-grid tbody td {
+    border: 1px solid #dee2e6;
+    vertical-align: top;
+    padding: 4px 6px;
+    min-height: 40px;
+    position: relative;
+}
+
+/* 出演者情報 */
+.timetable-grid .artist-block {
+    background-color: #e3f2fd;
+    border-radius: 4px;
+    padding: 4px 6px;
+    margin-bottom: 4px;
+    font-size: 0.85rem;
+}
+
+/* 編集ボタン */
+.timetable-grid .edit-btn {
+    display: inline-block;
+    margin-top: 2px;
+    font-size: 0.75rem;
+}

@@ -355,4 +355,124 @@ def generate_time_slots(start_time, end_time, interval_minutes=10):
 
 ---
 
-次は、ステージごとの色分けや、現在時刻のハイライトなどもできますよ。どんな見た目にしたいか、イメージがあれば教えてください！
+共通テンプレートで`<head>`を固定している場合でも、ページごとにCSSを追加する方法はあります！  
+以下のように、**CSSの読み込み用ブロックを`<head>`内に追加**しておくことで、各テンプレートから個別CSSを挿入できます。
+
+---
+
+## ✅ 共通テンプレートの修正案（base.html）
+
+```html
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}音楽フェスティバル管理{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    {% block extra_css %}
+    {% endblock %}
+
+    <style>
+        body {
+            padding-top: 50px;
+        }
+    </style>
+</head>
+```
+
+---
+
+## ✅ 個別テンプレートでCSSを追加（例：timetable_view.html）
+
+```html
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}タイムテーブル表示{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/timetable.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- タイムテーブル表示のHTML -->
+{% endblock %}
+```
+
+---
+
+## ✅ staticファイルの配置
+
+- CSSファイルは `festival/static/css/timetable.css` に保存
+- `settings.py` に以下があることを確認：
+
+```python
+STATIC_URL = '/static/'
+```
+
+---
+
+## ✅ collectstatic（本番環境用）
+
+開発環境では不要ですが、デプロイ時は以下を実行：
+
+```bash
+python manage.py collectstatic
+```
+
+---
+
+Djangoプロジェクトにおける`static`フォルダは、**プロジェクトルート（manage.pyがある場所）**に置くのが一般的です。つまり、`conf/`と同じ階層に配置します。
+
+---
+
+## 📁 正しい配置例
+
+```
+your_project_root/
+├── conf/
+│   └── settings.py
+├── festival/
+│   └── views.py など
+├── static/
+│   └── css/
+│       └── timetable.css
+├── manage.py
+```
+
+---
+
+## ⚙️ settings.py の確認ポイント
+
+```python
+# settings.py
+
+STATIC_URL = '/static/'
+
+# ルートの static フォルダを使う場合
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+```
+
+> `BASE_DIR` が `manage.py` のあるディレクトリを指していることが前提です。
+
+---
+
+## ✅ テンプレートでの読み込み
+
+```html
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/timetable.css' %}">
+```
+
+---
+
+## 🧪 動作確認のヒント
+
+- `python manage.py runserver` で開発サーバーを起動している場合、`STATICFILES_DIRS` が正しく設定されていれば `/static/css/timetable.css` にアクセスできます。
+- ブラウザで `http://127.0.0.1:8000/static/css/timetable.css` を直接開いて、CSSが表示されるか確認してみてください。
+
+---
+
+もしアプリごとに`static`を分けたい場合は、`festival/static/festival/css/...`のようにアプリ名を含める構成も可能です。その場合は`{% static 'festival/css/timetable.css' %}`と書きます。
+
+どちらの構成にするかはプロジェクトの規模や好みによります。必要なら構成のベストプラクティスも一緒に考えますよ！
