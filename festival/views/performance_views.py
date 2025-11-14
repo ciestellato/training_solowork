@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.shortcuts import render, get_object_or_404, redirect
@@ -314,16 +316,36 @@ def timetable_view(request):
     event_day_id = request.GET.get('event_day')
     event_day = None
     stages = []
+    performances_by_stage_and_time = {}
+    time_slots = []
 
     if event_day_id:
         event_day = get_object_or_404(EventDay, id=event_day_id)
         stages = Stage.objects.filter(event=event_day.event)
+        performances = Performance.objects.filter(event_day=event_day).select_related('artist', 'stage')
+
+        # 出演時間の最小・最大を取得
+        start_times = [p.start_time for p in performances if p.start_time]
+        end_times = [p.end_time for p in performances if p.end_time]
+        if start_times and end_times:
+            min_time = min(start_times)
+            max_time = max(end_times)
+            time_slots = generate_time_slots(min_time, max_time, interval_minutes=15)
+
+            # ステージ×時間スロットのマッピング
+            performances_by_stage_and_time = defaultdict(lambda: defaultdict(list))
+            for perf in performances:
+                for slot in time_slots:
+                    if perf.start_time and perf.end_time and perf.start_time <= slot < perf.end_time:
+                        performances_by_stage_and_time[perf.stage.id][slot].append(perf)
 
     context = {
         'event_days': EventDay.objects.order_by('date'),
         'selected_day_id': event_day_id,
         'event_day': event_day,
         'stages': stages,
+        'time_slots': time_slots,
+        'performances_by_stage_and_time': performances_by_stage_and_time,
     }
     return render(request, 'timetable_view.html', context)
 
@@ -353,3 +375,19 @@ def edit_performance(request, performance_id):
         'stages': stages,
     }
     return render(request, 'edit_performance.html', context)
+
+from datetime import datetime, timedelta
+
+def generate_time_slots(start_time, end_time, interval_minutes=10):
+    """出演時間(datetime.time型)から時間スロットを生成"""
+    slots = []
+    # 仮の日付を使ってdatetime型に変換
+    dummy_date = datetime.today().date()
+    current_dt = datetime.combine(dummy_date, start_time)
+    end_dt = datetime.combine(dummy_date, end_time)
+
+    while current_dt < end_dt:
+        slots.append(current_dt.time())  # time型に戻して格納
+        current_dt += timedelta(minutes=interval_minutes)
+
+    return slots
