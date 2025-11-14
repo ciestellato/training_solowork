@@ -534,5 +534,264 @@ def get_item(dictionary, key):
 ## ✅ まとめ
 
 この修正により、存在しない`event_day`や空のデータでもエラーにならず、テンプレートが安定して表示されるようになります。  
-次は、ステージごとの色分けや現在時刻のハイライトなどもできますよ。どんな表示にしたいか、イメージがあればぜひ教えてください！
 
+タイムテーブルの視認性を高めるために、以下の2点を実現する方法をご提案します：
+
+---
+
+## ✅ 目的
+
+1. **時刻の表示を1時間ごとに限定**（例：12:00, 13:00 だけ表示）
+2. **同じ出演者が複数スロットにまたがる場合、2行目以降の表示を省略**（または背景色と同化）
+
+---
+
+## 🧠 実装方針
+
+### 1. **1時間ごとの時刻表示**
+
+テンプレートで `time_slots` をループする際、`time.minute == 0` のときだけ表示：
+
+```django
+<td class="time-cell">
+  {% if time.minute == 0 %}
+    {{ time|time:"H:i" }}
+  {% endif %}
+</td>
+```
+
+### 2. **出演者の重複表示を抑制**
+
+ビュー側で、各出演者がどのスロットにまたがっているかを記録し、テンプレートで「最初のスロットだけ表示」するように制御します。
+
+---
+
+## 🛠 ビュー側の追加処理（例）
+
+```python
+# スロットごとの出演者表示制御用セット
+first_slot_map = {}
+
+for perf in performances:
+    for slot in time_slots:
+        if perf.start_time and perf.end_time and perf.start_time <= slot < perf.end_time:
+            performances_by_stage_and_time[perf.stage.id][slot].append(perf)
+            # 最初のスロットだけを記録
+            if perf not in first_slot_map:
+                if slot == perf.start_time:
+                    first_slot_map[perf] = slot
+```
+
+テンプレートに渡す：
+
+```python
+context = {
+    ...
+    'first_slot_map': first_slot_map,
+}
+```
+
+---
+
+## 🎨 テンプレート側の表示制御
+
+```django
+{% for perf in performances_by_stage_and_time|get_item:stage.id|get_item:time %}
+    {% if first_slot_map|get_item:perf == time %}
+        <div class="artist-block">
+            {{ perf.artist.name }}<br>
+            <small>{{ perf.start_time|time:"H:i" }} - {{ perf.end_time|time:"H:i" }}</small>
+            {% if request.user.is_staff %}
+                <a href="{% url 'festival:edit_performance' perf.id %}" class="btn btn-sm btn-outline-primary edit-btn">編集</a>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="artist-block muted-block">&nbsp;</div>
+    {% endif %}
+{% endfor %}
+```
+
+---
+
+## 🎨 CSS調整（例）
+
+```css
+.time-cell {
+    text-align: center;
+    font-weight: bold;
+    background-color: #f0f0f0;
+}
+
+.artist-block {
+    background-color: #e3f2fd;
+    border-radius: 4px;
+    padding: 4px 6px;
+    margin-bottom: 4px;
+    font-size: 0.85rem;
+}
+
+.muted-block {
+    background-color: #e3f2fd;
+    color: transparent;
+    height: 1.5em;
+}
+```
+
+---
+
+## ✅ まとめ
+
+この構成により：
+
+- 時刻は1時間ごとにだけ表示され、視認性が向上
+- 出演者が複数スロットにまたがっても、1行目だけに表示されてスッキリ
+- 空白部分も背景色で揃うため、タイムテーブル全体が整って見えます
+
+ご要望の「スロット間の空白をなくして、複数スロットをひとかたまりに見せる」「スロットの境界線は薄く残す」という表示は、CSSで以下のように調整できます。
+
+---
+
+## 🎨 CSS調整案：スロットの統合表示と薄い境界線
+
+```css
+/* タイムテーブル全体 */
+.timetable-grid {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+/* ヘッダー */
+.timetable-grid thead th {
+    background-color: #f8f9fa;
+    text-align: center;
+    padding: 8px;
+    border: 1px solid #dee2e6;
+}
+
+/* 時間列 */
+.timetable-grid tbody td:first-child {
+    background-color: #f0f0f0;
+    font-weight: bold;
+    text-align: center;
+    width: 80px;
+    border-top: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+/* ステージ列 */
+.timetable-grid tbody td {
+    border-top: 1px solid #e0e0e0;  /* 薄い横線 */
+    border-bottom: 1px solid #e0e0e0;
+    vertical-align: top;
+    padding: 0;  /* 空白をなくす */
+    min-height: 0;
+    height: 24px;  /* スロットの高さを固定 */
+    position: relative;
+}
+
+/* 出演者表示（最初のスロットのみ） */
+.artist-block {
+    background-color: #e3f2fd;
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-size: 0.85rem;
+    height: 100%;
+}
+
+/* 2スロット目以降（非表示） */
+.muted-block {
+    background-color: #e3f2fd;
+    color: transparent;
+    height: 100%;
+}
+```
+
+---
+
+## 🧩 表示の工夫ポイント
+
+- `padding: 0` と `height: 24px` によってスロット間の余白をなくし、連続したブロックに見えるようにします。
+- `border-top` と `border-bottom` を薄いグレー（`#e0e0e0`）にすることで、時間の区切りは視認できるが邪魔にならないようにします。
+- `.muted-block` は文字を透明にしつつ背景色を維持することで、ひとかたまりに見えるようにします。
+
+---
+
+## ✅ さらに見やすくするアイデア（任意）
+
+- スロットの高さを `height: 15px` にすると、よりコンパクトに。
+- ステージごとに `.stage-a`, `.stage-b` などのクラスを付けて色分けも可能。
+- 現在時刻のスロットに `.now-slot` を付けてハイライトすることもできます。
+
+---
+
+このCSSを適用すれば、タイムテーブルが「ひとかたまりの出演時間」として視覚的に読みやすくなり、隣のステージとの時間差も直感的に把握できるようになります。  
+以下が、あなたのご要望に沿って整理・調整した**最新版のCSS全体**です。ステージ間の余白、スロットの高さ統一、スロット間の境界線の薄さなどをすべて反映しています。
+
+---
+
+```css
+/* タイムテーブル全体 */
+.timetable-grid {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+/* ヘッダー */
+.timetable-grid thead th {
+    background-color: #f8f9fa;
+    text-align: center;
+    padding: 8px;
+    border: 1px solid #dee2e6;
+}
+
+/* 時間列（左端） */
+.timetable-grid tbody td:first-child {
+    background-color: #f0f0f0;
+    font-weight: bold;
+    text-align: center;
+    width: 80px;
+    border-top: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 0;
+    height: 24px;
+}
+
+/* ステージ列（出演者表示セル） */
+.timetable-grid tbody td:not(:first-child) {
+    border-top: 1px solid #e0e0e0;  /* スロット間の薄い横線 */
+    border-bottom: 1px solid #e0e0e0;
+    border-left: 2px solid #dee2e6; /* ステージ間の区切りを強調 */
+    vertical-align: top;
+    padding: 0;
+    height: 24px;
+    position: relative;
+}
+
+/* 出演者表示（最初のスロットのみ） */
+.artist-block {
+    background-color: #e3f2fd;
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-size: 0.85rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* 2スロット目以降（非表示） */
+.muted-block {
+    background-color: #e3f2fd;
+    color: transparent;
+    height: 100%;
+}
+```
+
+---
+
+このCSSを適用すれば、タイムテーブルがより視覚的に整理され、出演者のまとまりやステージ間の区切りが自然に伝わるようになります。  
+さらに見た目を強化したい場合は、ステージごとの色分けや現在時刻のハイライトなども追加できますよ。必要ならそのCSSもすぐにご用意できます！

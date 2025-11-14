@@ -53,17 +53,24 @@
         <tbody>
             {% for time in time_slots %}
                 <tr>
-                    <td>{{ time|time:"H:i" }}</td>
+                    <td class="time-cell">
+                        {% if time.minute == 0 %}
+                            {{ time|time:"H:i" }}
+                        {% endif %}
+                    </td>
                     {% for stage in stages %}
                         <td>
                             {% for perf in performances_by_stage_and_time|get_item:stage.id|get_item:time %}
-                                <div class="artist-block">
-                                    {{ perf.artist.name }}<br>
-                                    <small>{{ perf.start_time|time:"H:i" }} - {{ perf.end_time|time:"H:i" }}</small>
-                                    {% if request.user.is_staff %}
-                                        <a href="{% url 'festival:edit_performance' perf.id %}" class="btn btn-sm btn-outline-primary edit-btn">編集</a>
-                                    {% endif %}
-                                </div>
+                                {% if first_slot_map|get_item:perf == time %}
+                                    <div class="artist-block">
+                                        {{ perf.artist.name }} ({{ perf.start_time|time:"H:i" }} - {{ perf.end_time|time:"H:i" }})
+                                        {% if request.user.is_staff %}
+                                            <a href="{% url 'festival:edit_performance' perf.id %}" class="btn btn-sm btn-outline-primary edit-btn">編集</a>
+                                        {% endif %}
+                                    </div>
+                                {% else %}
+                                    <div class="artist-block muted-block">&nbsp;</div>
+                                {% endif %}
                             {% endfor %}
                         </td>
                     {% endfor %}

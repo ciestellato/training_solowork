@@ -330,14 +330,20 @@ def timetable_view(request):
         if start_times and end_times:
             min_time = min(start_times)
             max_time = max(end_times)
-            time_slots = generate_time_slots(min_time, max_time, interval_minutes=15)
+            time_slots = generate_time_slots(min_time, max_time, interval_minutes=5)
 
             # ステージ×時間スロットのマッピング
             performances_by_stage_and_time = defaultdict(lambda: defaultdict(list))
+            # スロットごとの出演者表示制御用セット
+            first_slot_map = {}
             for perf in performances:
                 for slot in time_slots:
                     if perf.start_time and perf.end_time and perf.start_time <= slot < perf.end_time:
                         performances_by_stage_and_time[perf.stage.id][slot].append(perf)
+                        # 最初のスロットだけを記録
+                        if perf not in first_slot_map:
+                            if slot == perf.start_time:
+                                first_slot_map[perf] = slot
 
     context = {
         'event_days': EventDay.objects.order_by('date'),
@@ -346,6 +352,7 @@ def timetable_view(request):
         'stages': stages,
         'time_slots': time_slots,
         'performances_by_stage_and_time': performances_by_stage_and_time,
+        'first_slot_map': first_slot_map,
     }
     return render(request, 'timetable_view.html', context)
 
@@ -375,8 +382,6 @@ def edit_performance(request, performance_id):
         'stages': stages,
     }
     return render(request, 'edit_performance.html', context)
-
-from datetime import datetime, timedelta
 
 def generate_time_slots(start_time, end_time, interval_minutes=10):
     """出演時間(datetime.time型)から時間スロットを生成"""
