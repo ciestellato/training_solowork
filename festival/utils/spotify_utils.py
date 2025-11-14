@@ -81,19 +81,16 @@ def get_top_tracks(spotify_id, market='JP'):
     """
     token = get_app_token()
     if not token:
+        print("アクセストークンの取得に失敗しました")
         return []
 
     headers = {'Authorization': f'Bearer {token}'}
     url = f'https://api.spotify.com/v1/artists/{spotify_id}/top-tracks'
     params = {'market': market}
 
-    response = requests.get(url, headers=headers, params=params)
-
-    if response.status_code != 200:
-        print(f"トップトラック取得失敗: {response.status_code} - {response.text}")
-        return []
-
     try:
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+        response.raise_for_status()
         data = response.json()
         tracks = data.get('tracks', [])
         return [
@@ -105,6 +102,9 @@ def get_top_tracks(spotify_id, market='JP'):
             }
             for track in tracks
         ]
+    except requests.exceptions.RequestException as e:
+        print(f"Spotify API接続エラー: {e}")
+        return []
     except ValueError:
         print("トップトラックのレスポンスがJSON形式ではありません")
         return []
@@ -120,15 +120,20 @@ def get_user_token(request):
         cache_path=f".cache-{request.session.session_key}"
     )
 
-    # 認証コードがまだない場合 → 認証URLへリダイレクト
-    if not request.GET.get("code"):
-        auth_url = sp_oauth.get_authorize_url()
-        return auth_url  # 呼び出し元で redirect する
+    token_info = sp_oauth.get_cached_token()
 
-    # 認証コードがある場合 → トークン取得
-    code = request.GET.get("code")
-    token_info = sp_oauth.get_access_token(code)
-
+    if token_info:
+        if sp_oauth.is_token_expired(token_info):
+            token_info = sp_oauth.refresh_access_token(token_info['refresh_token'])
+    else:
+        # 認証コードがまだない場合 → 認証URLへリダイレクト
+        if not request.GET.get("code"):
+            auth_url = sp_oauth.get_authorize_url()
+            return auth_url  # 呼び出し元で redirect
+        # 認証コードがある場合 → トークン取得
+        code = request.GET.get("code")
+        token_info = sp_oauth.get_access_token(code)
+        
     # セッションに保存して再利用可能に
     request.session["spotify_token"] = token_info["access_token"]
     return token_info["access_token"]

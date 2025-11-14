@@ -9,11 +9,11 @@ def spotify_login_view(request):
         client_secret=settings.SPOTIFY_CLIENT_SECRET,
         redirect_uri=settings.SPOTIFY_REDIRECT_URI,
         scope=settings.SPOTIFY_SCOPE,
-        cache_path=f".cache-{request.session.session_key}"
+        cache_path=None
     )
     auth_url = sp_oauth.get_authorize_url()
+    print("Spotify認証URL:", auth_url)
     return redirect(auth_url)
-
 
 def spotify_callback_view(request):
     """Spotify認証後のコールバック処理ビュー"""
@@ -22,15 +22,14 @@ def spotify_callback_view(request):
         client_secret=settings.SPOTIFY_CLIENT_SECRET,
         redirect_uri=settings.SPOTIFY_REDIRECT_URI,
         scope=settings.SPOTIFY_SCOPE,
-        cache_path=f".cache-{request.session.session_key}"
+        cache_path=None  # セッションベースで管理するためキャッシュ無効化
     )
 
     code = request.GET.get("code")
     token_info = sp_oauth.get_access_token(code)
-    access_token = token_info.get("access_token")
 
-    if access_token:
-        request.session["spotify_token"] = access_token
-        return redirect("festival:create_playlist")  # プレイリスト作成画面へ戻る
+    if token_info and token_info.get("access_token"):
+        request.session["spotify_token_info"] = token_info  # トークン情報を丸ごと保存
+        return redirect("festival:create_playlist")
     else:
-        return redirect("festival:error_page")  # エラー処理ビューへ（任意）
+        return redirect("festival:error_page")

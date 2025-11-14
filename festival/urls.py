@@ -55,7 +55,7 @@ urlpatterns = [
 
     # Spotify認証関連
     path('spotify/login/', spotify_login_view, name='spotify_login'),
-    path('spotify/callback/', spotify_callback_view, name='spotify_callback'),
+    path('callback/', spotify_callback_view, name='spotify_callback'),
 
     # 管理者メニュー
     path('admin_menu/', admin_menu, name='admin_menu'),

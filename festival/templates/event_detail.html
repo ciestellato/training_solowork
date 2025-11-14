@@ -18,7 +18,10 @@
     <div class="mb-3">
         <h5>{{ day.date }} @ {{ day.venue }}</h5>
         {% if performances %}
-            <p><strong>出演者（{{ performances|length }}組）:</strong><br>
+            <p><strong>出演者（{{ performances|length }}組）:</strong>
+                <a href="{% url 'festival:create_playlist' %}?event_day={{ day.id }}" class="btn btn-success mt-3">
+                    🎧 この日程のプレイリストを作成
+                </a><br>
                 {% for perf in performances %}
                     <a href="{% url 'festival:artist_detail' perf.artist.pk %}">{{ perf.artist.name }}</a>{% if not forloop.last %} / {% endif %}
                 {% endfor %}

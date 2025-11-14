@@ -1,15 +1,14 @@
 import requests
+import time
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
+from django.conf import settings
 
 from festival.models import EventDay, Performance, Artist
 from festival.forms import PlaylistForm
 from festival.utils.spotify_utils import get_top_tracks, save_playlist_to_spotify
 
-from django.shortcuts import render
-from festival.models import EventDay, Performance, Artist
-from festival.forms import PlaylistForm
-from festival.utils.spotify_utils import get_top_tracks
+from spotipy.oauth2 import SpotifyOAuth
 
 def create_playlist_view(request):
     """出演アーティストを選択してSpotifyプレイリストを生成するビュー"""
@@ -70,7 +69,24 @@ def create_playlist_view(request):
 def save_playlist_to_spotify_view(request):
     """Spotifyにプレイリストを保存するビュー"""
     if request.method == 'POST':
-        token = request.session.get("spotify_token")
+        token_info = request.session.get("spotify_token_info")
+        if not token_info:
+            messages.error(request, "⚠️ Spotify認証が必要です")
+            return redirect("festival:spotify_login")
+
+        sp_oauth = SpotifyOAuth(
+            client_id=settings.SPOTIFY_CLIENT_ID,
+            client_secret=settings.SPOTIFY_CLIENT_SECRET,
+            redirect_uri=settings.SPOTIFY_REDIRECT_URI,
+            scope=settings.SPOTIFY_SCOPE,
+            cache_path=None
+        )
+
+        if sp_oauth.is_token_expired(token_info):
+            token_info = sp_oauth.refresh_access_token(token_info["refresh_token"])
+            request.session["spotify_token_info"] = token_info
+
+        token = token_info["access_token"]
         track_uris = request.POST.get("track_uris", "").split(",")
         playlist_name = request.POST.get("playlist_name", "フェス予習プレイリスト")
 
