@@ -475,4 +475,64 @@ STATICFILES_DIRS = [
 
 もしアプリごとに`static`を分けたい場合は、`festival/static/festival/css/...`のようにアプリ名を含める構成も可能です。その場合は`{% static 'festival/css/timetable.css' %}`と書きます。
 
-どちらの構成にするかはプロジェクトの規模や好みによります。必要なら構成のベストプラクティスも一緒に考えますよ！
+どちらの構成にするかはプロジェクトの規模や好みによります。
+
+---
+
+このエラーは、テンプレートタグ `get_item` を使って辞書アクセスをしている際に、**対象の辞書が `None` だったため `.get()` を呼び出せずに失敗**しているものです。
+
+---
+
+## 🧯 原因の詳細
+
+`custom_filters.py` の `get_item` フィルターはおそらくこうなっているはずです：
+
+```python
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key)
+```
+
+→ `dictionary` が `None` の場合、`.get()` を呼べず `AttributeError` が発生します。
+
+---
+
+## ✅ 解決方法：安全な辞書アクセスに修正
+
+`custom_filters.py` を以下のように修正してください：
+
+```python
+@register.filter
+def get_item(dictionary, key):
+    if isinstance(dictionary, dict):
+        return dictionary.get(key)
+    return None
+```
+
+これで、`dictionary` が `None` や辞書以外の型だった場合でも安全に処理され、テンプレート側で空になるだけでエラーにはなりません。
+
+---
+
+## 🧪 追加の防御策（テンプレート側）
+
+テンプレートでも、以下のように空チェックを入れるとより安全です：
+
+```django
+{% with performances_by_stage_and_time|get_item:stage.id|get_item:time as perf_list %}
+    {% if perf_list %}
+        {% for perf in perf_list %}
+            <!-- 出演者表示 -->
+        {% endfor %}
+    {% else %}
+        <!-- 空セル -->
+    {% endif %}
+{% endwith %}
+```
+
+---
+
+## ✅ まとめ
+
+この修正により、存在しない`event_day`や空のデータでもエラーにならず、テンプレートが安定して表示されるようになります。  
+次は、ステージごとの色分けや現在時刻のハイライトなどもできますよ。どんな表示にしたいか、イメージがあればぜひ教えてください！
+
