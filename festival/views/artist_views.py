@@ -14,13 +14,23 @@ def artist_list(request):
     initial = request.GET.get('initial')
 
     all_artists = Artist.objects.exclude(furigana__isnull=True).exclude(furigana__exact='')
-    artists = all_artists
+
+    # 頭文字グループ化によるフィルタ
+    if initial:
+        matched_ids = [
+            artist.id for artist in all_artists
+            if get_initial_group(artist.furigana) == initial
+        ]
+        artists = Artist.objects.filter(id__in=matched_ids)
+    else:
+        artists = all_artists
+
     if query:
         artists = artists.filter(name__icontains=query)
-    if initial:
-        artists = artists.filter(furigana__startswith=initial)
+
     artists = artists.order_by('furigana')
 
+    # 初期グループ一覧生成
     initials = sorted(set(get_initial_group(a.furigana) for a in all_artists if a.furigana))
     kana_order = ['あ', 'か', 'さ', 'た', 'な', 'は', 'ま', 'や', 'ら', 'わ']
     alpha_order = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
