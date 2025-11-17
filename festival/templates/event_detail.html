@@ -48,7 +48,7 @@
 {% endfor %}
 
 {% if request.user.is_staff %}
-    <a href="{% url 'festival:register_event_day' %}?event_id={{ event.id }}" class="btn btn-secondary">このイベントに出演者を登録</a>
+    <a href="{% url 'festival:register_event_day' %}?event_id={{ event.id }}" class="btn btn-secondary mt-3">このイベントに出演者を登録</a>
 {% endif %}
 <a href="{% url 'festival:fes_event_list' %}" class="btn btn-primary mt-3">イベント一覧に戻る</a>
 {% endblock %}
