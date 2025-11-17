@@ -22,10 +22,14 @@ def event_detail(request, pk):
     """イベント詳細ページ"""
     event = get_object_or_404(Event, pk=pk)
     event_days = event.eventday_set.all().order_by('date')
-    day_performances = [
-        (day, day.performance_set.select_related('artist').order_by('artist__name'))
-        for day in event_days
-    ]
+
+    day_performances = []
+    for day in event_days:
+        performances = day.performance_set.select_related('artist').order_by('artist__name')
+        # start_time と end_time が両方設定されているパフォーマンスがあるかをチェック
+        has_timetable = performances.filter(start_time__isnull=False, end_time__isnull=False).exists()
+        day_performances.append((day, performances, has_timetable))
+
     return render(request, 'event_detail.html', {
         'event': event,
         'day_performances': day_performances

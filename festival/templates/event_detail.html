@@ -19,11 +19,16 @@
 </div>
 
 <h4>開催日程と出演者</h4>
-{% for day, performances in day_performances %}
+{% for day, performances, has_timetable in day_performances %}
     <div class="mb-3 event-day-block">
         <h5>{{ day.date }} @ {{ day.venue }}</h5>
         {% if performances %}
-            <p><strong>出演者（{{ performances|length }}組）:</strong><br>
+            <p><strong>出演者（{{ performances|length }}組）:</strong>
+                {% if has_timetable %}
+                    <a href="{% url 'festival:timetable_view' %}?event_day={{ day.id }}" class="btn btn-outline-primary btn-sm mt-2">
+                        🕒 タイムテーブルを見る
+                    </a>
+                {% endif %}<br>
                 {% for perf in performances %}
                     <a href="{% url 'festival:artist_detail' perf.artist.pk %}">{{ perf.artist.name }}</a>{% if not forloop.last %} / {% endif %}
                 {% endfor %}<br>
