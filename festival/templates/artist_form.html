@@ -1,4 +1,9 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+        <link rel="stylesheet" href="{% static 'css/color.css' %}">
+{% endblock %}
 
 {% block title %}アーティスト情報編集{% endblock %}
 
@@ -11,5 +16,5 @@
     <button type="submit" class="btn btn-primary">更新</button>
 </form>
 
-<a href="{% url 'festival:artist_detail' artist.id %}" class="btn btn-secondary mt-3">← アーティスト詳細に戻る</a>
+<a href="{% url 'festival:artist_detail' artist.id %}" class="btn btn-primary mt-3">← アーティスト詳細に戻る</a>
 {% endblock %}

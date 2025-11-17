@@ -1,11 +1,16 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+        <link rel="stylesheet" href="{% static 'css/color.css' %}">
+{% endblock %}
 
 {% block title %}{{ event.name }} の詳細{% endblock %}
 
 {% block content %}
 <h1>{{ event.name }} の詳細</h1>
 
-<div class="mb-3">
+<div class="mb-3 event-meta">
     <p><strong>開催期間:</strong> {{ event.start_date }} 〜 {{ event.end_date }}</p>
     <p><strong>概要:</strong><br>{{ event.description|linebreaks }}</p>
     {% if event.official_url %}
@@ -15,16 +20,16 @@
 
 <h4>開催日程と出演者</h4>
 {% for day, performances in day_performances %}
-    <div class="mb-3">
+    <div class="mb-3 event-day-block">
         <h5>{{ day.date }} @ {{ day.venue }}</h5>
         {% if performances %}
-            <p><strong>出演者（{{ performances|length }}組）:</strong>
-                <a href="{% url 'festival:create_playlist' %}?event_day={{ day.id }}" class="btn btn-success mt-3">
-                    🎧 この日程のプレイリストを作成
-                </a><br>
+            <p><strong>出演者（{{ performances|length }}組）:</strong><br>
                 {% for perf in performances %}
                     <a href="{% url 'festival:artist_detail' perf.artist.pk %}">{{ perf.artist.name }}</a>{% if not forloop.last %} / {% endif %}
-                {% endfor %}
+                {% endfor %}<br>
+                <a href="{% url 'festival:create_playlist' %}?event_day={{ day.id }}" class="btn btn-success mt-3">
+                    🎧 この日程のプレイリストを作成
+                </a>
             </p>
         {% else %}
             <p class="text-muted">出演者未登録</p>
@@ -40,5 +45,5 @@
 {% if request.user.is_staff %}
     <a href="{% url 'festival:register_event_day' %}?event_id={{ event.id }}" class="btn btn-secondary">このイベントに出演者を登録</a>
 {% endif %}
-<a href="{% url 'festival:event_list' %}" class="btn btn-secondary mt-3">イベント一覧に戻る</a>
+<a href="{% url 'festival:fes_event_list' %}" class="btn btn-primary mt-3">イベント一覧に戻る</a>
 {% endblock %}

@@ -1,4 +1,10 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+        <link rel="stylesheet" href="{% static 'css/color.css' %}">
+{% endblock %}
+
 {% block title %}タイムテーブル編集{% endblock %}
 {% block content %}
 <h1>🛠 タイムテーブル編集</h1>

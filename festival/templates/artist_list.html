@@ -1,4 +1,9 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+        <link rel="stylesheet" href="{% static 'css/color.css' %}">
+{% endblock %}
 
 {% block title %}アーティスト一覧{% endblock %}
 
@@ -6,7 +11,7 @@
 <h1>🎤 アーティスト一覧</h1>
 
 <!-- 頭文字タブ -->
-<div class="mb-3">
+<div class="mb-3 initial-tab">
     <div class="d-flex flex-wrap gap-2">
         <strong class="me-2">五十音:</strong>
         {% for char in initials %}
@@ -43,7 +48,7 @@
             <th>名前</th>
             <th>ふりがな</th>
             <th>ジャンル</th>
-            <th>Spotify ID</th>
+            <!-- <th>Spotify ID</th> -->
         </tr>
     </thead>
     <tbody>
@@ -52,7 +57,7 @@
             <td><a href="{% url 'festival:artist_detail' artist.pk %}">{{ artist.name }}</a></td>
             <td>{{ artist.furigana }}</td>
             <td>{{ artist.genres|join:", " }}</td>
-            <td>{{ artist.spotify_id }}</td>
+            <!-- <td>{{ artist.spotify_id }}</td> -->
         </tr>
         {% empty %}
         <tr>
@@ -62,5 +67,5 @@
     </tbody>
 </table>
 
-<a href="{% url 'festival:index' %}" class="btn btn-secondary mt-3">トップへ戻る</a>
+<a href="{% url 'festival:index' %}" class="btn btn-primary mt-3">トップへ戻る</a>
 {% endblock %}

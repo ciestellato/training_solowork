@@ -24,10 +24,8 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item"><a class="nav-link" href="{% url 'festival:artist_list' %}">アーティスト</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'festival:fes_event_list' %}">フェス</a></li>
-                    <!-- <li class="nav-item"><a class="nav-link" href="{% url 'festival:other_event_list' %}">ライヴ</a></li> -->
-                    <li class="nav-item"><a class="nav-link" href="{% url 'festival:create_playlist' %}">プレイリスト</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'festival:artist_list' %}">アーティスト</a></li>
                     <li class="nav-item"><a class="nav-link" href="/admin/">管理画面</a></li>
                     {% if request.user.is_staff %}
                         <li class="nav-item">

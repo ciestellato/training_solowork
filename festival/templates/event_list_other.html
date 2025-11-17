@@ -1,4 +1,9 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+        <link rel="stylesheet" href="{% static 'css/color.css' %}">
+{% endblock %}
 
 {% block title %}その他のイベント一覧{% endblock %}
 

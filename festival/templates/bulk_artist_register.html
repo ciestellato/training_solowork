@@ -1,4 +1,9 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+        <link rel="stylesheet" href="{% static 'css/color.css' %}">
+{% endblock %}
 
 {% block title %}アーティスト一括登録{% endblock %}
 
@@ -15,5 +20,5 @@
     <button type="submit" class="btn btn-primary">登録する</button>
 </form>
 
-<a href="{% url 'festival:artist_list' %}" class="btn btn-secondary mt-3">一覧に戻る</a>
+<a href="{% url 'festival:artist_list' %}" class="btn btn-primary mt-3">一覧に戻る</a>
 {% endblock %}

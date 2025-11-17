@@ -30,7 +30,26 @@ body {
     color: var(--color-accent) !important;
 }
 
-/* ボタン */
+/* 見出し */
+h1, h2 {
+    color: var(--color-primary);
+    font-weight: bold;
+}
+
+/* メニューリスト */
+.list-group-item {
+    background-color: var(--color-light);
+    color: var(--color-text);
+    border: 1px solid var(--color-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.list-group-item:hover {
+    background-color: var(--color-primary);
+    color: var(--color-light);
+}
+
+/* ボタン（共通） */
 .btn-primary {
     background-color: var(--color-accent);
     border-color: var(--color-accent);
@@ -42,11 +61,99 @@ body {
     border-color: var(--color-primary);
 }
 
-/* カード */
-.card {
-    background-color: var(--color-background);
-    border: none;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+.btn-secondary {
+    background-color: var(--color-success);
+    border-color: var(--color-success);
+    color: var(--color-light);
+}
+
+.btn-secondary:hover {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+}
+
+/* 頭文字フィルタボタン */
+.btn-outline-primary {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--color-primary);
+    color: var(--color-light);
+}
+
+.btn-outline-primary.active {
+    background-color: var(--color-accent);
+    color: var(--color-light);
+    border-color: var(--color-accent);
+}
+
+/* 検索フォーム */
+.input-group .form-control {
+    border: 1px solid var(--color-primary);
+}
+
+.input-group .btn {
+    border-radius: 0 4px 4px 0;
+}
+
+/* 頭文字フィルタゾーンのラベル */
+.initial-label {
+    font-weight: bold;
+    color: var(--color-text);
+    margin-right: 8px;
+}
+
+/* 頭文字フィルタボタン（五十音・ABC） */
+.initial-tab .btn-outline-primary {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background-color: var(--color-light);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.initial-tab .btn-outline-primary:hover {
+    background-color: var(--color-primary);
+    color: var(--color-light);
+}
+
+.initial-tab .btn-outline-primary.active {
+    background-color: var(--color-accent);
+    color: var(--color-light);
+    border-color: var(--color-accent);
+}
+
+/* 「すべて表示」ボタン */
+.initial-tab .btn-secondary {
+    background-color: var(--color-accent);
+    color: var(--color-light);
+    border: 1px solid var(--color-accent);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.initial-tab .btn-secondary:hover {
+    background-color: var(--color-primary);
+    color: var(--color-light);
+}
+
+/* テーブル */
+.table {
+    background-color: var(--color-light);
+    border: 1px solid var(--color-primary);
+}
+
+.table th {
+    background-color: var(--color-primary);
+    color: var(--color-light);
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: #f9f0e5;
+}
+
+.table-striped tbody tr:hover {
+    background-color: #e0d4c2;
 }
 
 /* フッター */
@@ -57,17 +164,140 @@ footer {
     text-align: center;
 }
 
-/* ステージブロック（例） */
-.stage-block {
-    border-radius: 4px;
-    padding: 8px;
-    margin-bottom: 6px;
-    color: var(--color-light);
-    box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+/* フェスイベント一覧ページ */
+
+/* イベントリスト全体 */
+.list-group {
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
-/* スロットホバー */
-.slot-highlight:hover {
+/* 各イベント項目 */
+.list-group-item {
     background-color: var(--color-light);
-    transition: background-color 0.3s ease;
+    color: var(--color-text);
+    border-left: 6px solid var(--color-primary);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.list-group-item:hover {
+    background-color: #f5e8dc;
+    border-left-color: var(--color-accent);
+}
+
+/* イベント名リンク */
+.list-group-item a {
+    color: var(--color-primary);
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.list-group-item a:hover {
+    color: var(--color-accent);
+    text-decoration: underline;
+}
+
+/* 編集ボタン */
+.btn-outline-secondary {
+    border-color: var(--color-text);
+    color: var(--color-text);
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--color-text);
+    color: var(--color-light);
+}
+
+/* イベント詳細ページ用スタイル */
+
+/* イベントタイトル */
+h1 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid var(--color-primary);
+    padding-bottom: 0.5rem;
+}
+
+/* 開催期間・概要・公式URL */
+.event-meta p {
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+}
+
+.event-meta a {
+    color: var(--color-accent);
+    text-decoration: underline;
+}
+
+.event-meta a:hover {
+    color: var(--color-primary);
+}
+
+/* 開催日程ブロック */
+.event-day-block {
+    background-color: #fffdf9;
+    border-left: 6px solid var(--color-primary);
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* 日付＋会場 */
+.event-day-block h5 {
+    color: var(--color-primary);
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+/* 出演者リンク */
+.event-day-block a {
+    font-weight: 500;
+    color: var(--color-text);
+    text-decoration: none;
+}
+
+.event-day-block a:hover {
+    color: var(--color-accent);
+    text-decoration: underline;
+}
+
+/* プレイリスト作成ボタン */
+.btn.btn-success {
+    background-color: var(--color-success);
+    border-color: var(--color-success);
+    color: var(--color-light);
+}
+
+.btn.btn-success:hover {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+}
+
+/* 出演者編集ボタン */
+.btn-outline-secondary {
+    margin-top: 0.5rem;
+}
+
+/* イベント詳細：開催情報ブロック（.event-meta） */
+.event-meta {
+    background-color: #fffdf9; /* 白っぽい背景（出演者ブロックと統一） */
+    border-left: 6px solid var(--color-primary);
+    padding: 1rem 1.25rem;
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* リンク装飾（公式サイト） */
+.event-meta a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    font-weight: 500;
+}
+
+.event-meta a:hover {
+    color: var(--color-primary);
+    text-decoration: none;
 }

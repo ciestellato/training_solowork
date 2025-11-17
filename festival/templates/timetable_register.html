@@ -1,5 +1,10 @@
 {% extends 'base.html' %}
 {% load custom_filters %}
+{% load static %}
+
+{% block extra_css %}
+        <link rel="stylesheet" href="{% static 'css/color.css' %}">
+{% endblock %}
 
 {% block title %}タイムテーブル登録{% endblock %}
 
