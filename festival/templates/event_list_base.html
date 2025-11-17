@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/color.css' %}">
+{% endblock %}
+
+{% block title %}
+    {% if mode == 'upcoming' %}今後のフェスイベント一覧{% else %}過去のフェスイベント一覧{% endif %}
+{% endblock %}
+
+{% block content %}
+<h1>
+    {% if mode == 'upcoming' %}🎪 今後のフェスイベント一覧{% else %}📜 過去のフェスイベント一覧{% endif %}
+    {% if request.user.is_staff %}
+        <a href="{% url 'festival:create_event' %}" class="btn btn-primary mt-3">📅 イベント登録</a>
+    {% endif %}
+</h1>
+
+<div class="mb-3">
+    <a href="{% url 'festival:fes_event_upcoming' %}" class="btn {% if mode == 'upcoming' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">今後のイベント</a>
+    <a href="{% url 'festival:fes_event_history' %}" class="btn {% if mode == 'history' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">過去のイベント</a>
+</div>
+
+{% if events %}
+    <ul class="list-group">
+        {% for event in events %}
+            <li class="list-group-item">
+                <a href="{% url 'festival:event_detail' event.id %}">{{ event.name }}</a>
+                <span class="text-muted">（{{ event.start_date }}〜{{ event.end_date }}）</span>
+                {% if request.user.is_staff %}
+                    <a href="{% url 'festival:edit_event' event.id %}" class="btn btn-outline-secondary btn-sm ms-2">編集</a>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p class="text-muted">該当するイベントはありません。</p>
+{% endif %}
+
+<a href="{% url 'festival:index' %}" class="btn btn-primary mt-3">トップへ戻る</a>
+{% endblock %}

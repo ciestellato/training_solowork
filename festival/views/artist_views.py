@@ -1,5 +1,8 @@
+from datetime import date
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.admin.views.decorators import staff_member_required
+from django.utils.timezone import localdate
+
 from ..models import Artist, Performance, EventDay
 from ..forms import ArtistForm, ArtistBulkEditForm, BulkArtistForm
 from ..utils.spotify_utils import save_artist_from_spotify
@@ -33,10 +36,21 @@ def artist_list(request):
 def artist_detail(request, pk):
     """アーティスト詳細ページ"""
     artist = get_object_or_404(Artist, pk=pk)
-    performances = Performance.objects.filter(artist=artist).select_related('event_day__event')
+    today = localdate()
+
+    # 関連する出演情報を取得（イベント情報も含めて）
+    performances = Performance.objects.filter(artist=artist).select_related('event_day__event', 'stage')
+
+    # 今日以降のスケジュール（昇順）
+    upcoming_performances = performances.filter(event_day__date__gte=today).order_by('event_day__date', 'start_time')
+
+    # 昨日以前の出演履歴（降順）
+    past_performances = performances.filter(event_day__date__lt=today).order_by('-event_day__date', '-start_time')
+
     return render(request, 'artist_detail.html', {
         'artist': artist,
-        'performances': performances,
+        'upcoming_performances': upcoming_performances,
+        'past_performances': past_performances,
     })
 
 @staff_member_required

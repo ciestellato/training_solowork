@@ -1,12 +1,26 @@
+from datetime import date
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import render, get_object_or_404, redirect
 from ..models import Event, EventDay, Performance
 from ..forms import EventForm
 
-def event_list(request):
-    """イベントの一覧表示ページ"""
-    events = Event.objects.all().order_by('start_date')
-    return render(request, 'event_list.html', {'events': events})
+def event_list_upcoming(request):
+    """今後のフェスイベント一覧"""
+    today = date.today()
+    events = Event.objects.filter(end_date__gte=today).order_by('start_date')
+    return render(request, 'event_list_upcoming.html', {
+        'events': events,
+        'mode': 'upcoming',
+    })
+
+def event_list_history(request):
+    """過去のフェスイベント一覧"""
+    today = date.today()
+    events = Event.objects.filter(end_date__lt=today).order_by('-start_date')
+    return render(request, 'event_list_history.html', {
+        'events': events,
+        'mode': 'history',
+    })
 
 def fes_event_list(request):
     """フェスイベント一覧ページ"""

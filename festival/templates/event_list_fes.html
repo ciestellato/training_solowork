@@ -8,7 +8,11 @@
 {% block title %}フェスイベント一覧{% endblock %}
 
 {% block content %}
-<h1>🎪 フェスイベント一覧</h1>
+<h1>🎪 フェスイベント一覧
+{% if request.user.is_staff %}
+<a href="{% url 'festival:create_event' %}" class="btn btn-primary mt-3">📅 イベント登録</a>
+{% endif %}
+</h1>
 
 {% if events %}
     <ul class="list-group">

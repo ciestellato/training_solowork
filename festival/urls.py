@@ -6,8 +6,8 @@ from .views.artist_views import (
     edit_artist_bulk
 )
 from .views.event_views import (
-    event_list, fes_event_list, other_event_list,
-    event_detail, create_event, edit_event
+    fes_event_list, other_event_list,
+    event_detail, create_event, edit_event, event_list_upcoming, event_list_history
 )
 from .views.performance_views import (
     register_event_day_and_performances,
@@ -31,8 +31,9 @@ urlpatterns = [
     path('artist/edit/<int:artist_id>/', edit_artist, name='edit_artist'),
     path('artist/bulk_edit/', edit_artist_bulk, name='edit_artist_bulk'),
 
-    # イベント関連
-    path('events/', event_list, name='event_list'),
+    # イベント関
+    path('events/upcoming/', event_list_upcoming, name='fes_event_upcoming'),
+    path('events/history/', event_list_history, name='fes_event_history'),
     path('events/fes/', fes_event_list, name='fes_event_list'),
     path('events/other/', other_event_list, name='other_event_list'),
     path('event/<int:pk>/', event_detail, name='event_detail'),

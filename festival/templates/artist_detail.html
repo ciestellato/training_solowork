@@ -11,18 +11,32 @@
 <h1>{{ artist.name }}の詳細</h1>
 <p>ふりがな：{{ artist.furigana }}</p>
 
-<h2 class="mt-4">🎤 スケジュール</h2>
-{% if performances %}
+{% if upcoming_performances %}
+    <h2 class="mt-4">🎤 今後の出演予定</h2>
     <ul class="list-group mb-4">
-        {% for perf in performances %}
+        {% for perf in upcoming_performances %}
             <li class="list-group-item">
-                <strong>{{ perf.event_day.date }}</strong> @ {{ perf.event_day.venue }}<br>
                 <a href="{% url 'festival:event_detail' perf.event_day.event.id %}">{{ perf.event_day.event.name }}</a>
+                {{ perf.event_day.date }} @ {{ perf.event_day.venue }}
             </li>
         {% endfor %}
     </ul>
 {% else %}
-    <p class="text-muted">出演確定イベントはまだありません。</p>
+    <p>今後の出演予定はありません。</p>
+{% endif %}
+
+{% if past_performances %}
+    <h2 class="mt-4">📜 過去の出演履歴</h2>
+    <ul class="list-group">
+        {% for perf in past_performances %}
+            <li class="list-group-item">
+                <a href="{% url 'festival:event_detail' perf.event_day.event.id %}">{{ perf.event_day.event.name }}</a>
+                {{ perf.event_day.date }} @ {{ perf.event_day.venue }}
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>過去の出演履歴はありません。</p>
 {% endif %}
 
 {% if request.user.is_staff %}
