@@ -1,46 +1,72 @@
-import pytest
-from festival.forms import EventDayPerformanceForm, BulkArtistForm
-from festival.models import Event, Artist, EventDay
+from django.test import TestCase
+from festival.forms import (
+    BulkArtistForm, ArtistForm, ArtistBulkEditForm,
+    EventDayPerformanceForm, ArtistSchedulePasteForm,
+    EventForm, PlaylistForm
+)
+from festival.models import Artist, Event
 
-@pytest.mark.django_db
-def test_event_day_performance_form_valid():
-    event = Event.objects.create(
-        name="Test Fest",
-        description="テストイベント",
-        start_date="2025-12-01",
-        end_date="2025-12-01",
-        event_type="FES"
-    )
-    EventDay.objects.create(event=event, date="2025-12-01", venue="代々木公園")
-    artist1 = Artist.objects.create(name="YOASOBI", spotify_id="abc123")
-    artist2 = Artist.objects.create(name="Aimer", spotify_id="def456")
+from datetime import date
 
-    form_data = {
-        "event": event.id,
-        "date": "2025-12-01",
-        "venue": "代々木公園",
-        "artists": [artist1.id, artist2.id],
-    }
 
-    form = EventDayPerformanceForm(data=form_data)
-    form.fields["date"].choices = [("2025-12-01", "2025-12-01")]  # JSの代替
+class FormValidationTests(TestCase):
+    def setUp(self):
+        self.artist = Artist.objects.create(name="YOASOBI", spotify_id="abc123")
+        self.event = Event.objects.create(
+            name="Test Event",
+            start_date=date(2025, 11, 1),
+            end_date=date(2025, 11, 3),
+            event_type="FES"
+        )
 
-    assert form.is_valid()
+    def test_bulk_artist_form_valid(self):
+        form = BulkArtistForm(data={"names": "YOASOBI, Aimer"})
+        self.assertTrue(form.is_valid())
 
-def test_bulk_artist_form_valid():
-    """正常系テスト"""
-    form_data = {
-        "names": "YOASOBI, Aimer, King Gnu"
-    }
-    form = BulkArtistForm(data=form_data)
-    assert form.is_valid()
-    assert form.cleaned_data["names"] == "YOASOBI, Aimer, King Gnu"
+    def test_artist_form_valid(self):
+        form = ArtistForm(data={
+            "name": "Aimer",
+            "furigana": "エメ",
+            "popularity": 80,
+            "genres": ["J-Pop"],
+            "spotify_id": "xyz789"
+        })
+        self.assertTrue(form.is_valid())
 
-def test_bulk_artist_form_invalid_empty():
-    """異常系テスト（空欄）"""
-    form_data = {
-        "names": ""
-    }
-    form = BulkArtistForm(data=form_data)
-    assert not form.is_valid()
-    assert "names" in form.errors
+    def test_artist_bulk_edit_form_fields(self):
+        form = ArtistBulkEditForm(artists=[self.artist])
+        self.assertIn(f"name_{self.artist.id}", form.fields)
+        self.assertIn(f"furigana_{self.artist.id}", form.fields)
+
+    def test_event_day_performance_form_missing_date(self):
+        form = EventDayPerformanceForm(data={
+            "event": self.event.id,
+            "venue": "Test Venue",
+            "artists": [self.artist.id]
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn("date", form.errors)
+
+    def test_artist_schedule_paste_form_valid(self):
+        form = ArtistSchedulePasteForm(data={
+            "artist": self.artist.id,
+            "event_name": "Tour 2025",
+            "raw_text": "2025-11-10 Zepp Tokyo"
+        })
+        self.assertTrue(form.is_valid())
+
+    def test_event_form_invalid_dates(self):
+        form = EventForm(data={
+            "name": "Invalid Event",
+            "event_type": "FES",
+            "start_date": "2025-11-10",
+            "end_date": "2025-11-01",
+            "description": "",
+            "official_url": ""
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn("__all__", form.errors)
+
+    def test_playlist_form_queryset(self):
+        form = PlaylistForm(artists_queryset=Artist.objects.all())
+        self.assertEqual(form.fields["artists"].queryset.count(), 1)

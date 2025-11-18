@@ -1,5 +1,5 @@
 from django.urls import path
-from .views.base_views import index
+from .views.base_views import index, error_page
 from .views.artist_views import (
     artist_list, artist_detail,
     bulk_artist_register, edit_artist,
@@ -23,6 +23,8 @@ app_name = 'festival'
 urlpatterns = [
     # トップページ
     path('', index, name='index'),
+    path("error/", error_page, name="error_page"),
+
 
     # アーティスト関連
     path('artists/', artist_list, name='artist_list'),
@@ -31,7 +33,7 @@ urlpatterns = [
     path('artist/edit/<int:artist_id>/', edit_artist, name='edit_artist'),
     path('artist/bulk_edit/', edit_artist_bulk, name='edit_artist_bulk'),
 
-    # イベント関
+    # イベント関係
     path('events/upcoming/', event_list_upcoming, name='fes_event_upcoming'),
     path('events/history/', event_list_history, name='fes_event_history'),
     path('events/fes/', fes_event_list, name='fes_event_list'),

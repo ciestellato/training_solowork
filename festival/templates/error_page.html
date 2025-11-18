@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+        <link rel="stylesheet" href="{% static 'css/color.css' %}">
+{% endblock %}
+
+{% block title %}🎶 音楽フェス予習サイト: Blast!!! - Spotify認証エラー{% endblock %}
+
+{% block content %}
+  <div class="alert alert-danger">
+    <h2>エラーが発生しました</h2>
+    <p>{{ message }}</p>
+    <a href="{% url 'festival:fes_event_upcoming' %}" class="btn btn-primary">今後のフェス一覧に戻る</a>
+  </div>
+{% endblock %}

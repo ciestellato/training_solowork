@@ -157,13 +157,23 @@ def paste_schedule_register(request):
             event_name = form.cleaned_data['event_name']
             raw_text = form.cleaned_data['raw_text']
 
-            # イベント作成または取得
+            # 最初の有効な日付を取得して初期値に使う
+            first_valid_date = None
+            for line in raw_text.splitlines():
+                parts = line.strip().split(maxsplit=1)
+                if len(parts) == 2:
+                    try:
+                        first_valid_date = datetime.strptime(parts[0], '%Y-%m-%d').date()
+                        break
+                    except Exception:
+                        continue
+
             event, _ = Event.objects.get_or_create(
                 name=event_name,
                 defaults={
-                    'start_date': '',
-                    'end_date': '',
-                    'event_type': 'TOUR'
+                    'start_date': first_valid_date or date.today(),
+                    'end_date': first_valid_date or date.today(),
+                    'event_type': 'FES'
                 }
             )
 

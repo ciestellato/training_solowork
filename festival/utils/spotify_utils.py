@@ -8,11 +8,15 @@ from spotipy.oauth2 import SpotifyOAuth
 def get_app_token():
     """Spotify API用のアクセストークンを取得(アプリ用：読み取り専用)"""
     auth_url = "https://accounts.spotify.com/api/token"
-    response = requests.post(auth_url, {
-        'grant_type': 'client_credentials',
-        'client_id': settings.SPOTIFY_CLIENT_ID,
-        'client_secret': settings.SPOTIFY_CLIENT_SECRET,
-    })
+    try:
+        response = requests.post(auth_url, {
+            'grant_type': 'client_credentials',
+            'client_id': settings.SPOTIFY_CLIENT_ID,
+            'client_secret': settings.SPOTIFY_CLIENT_SECRET,
+        })
+    except requests.exceptions.RequestException as e:
+        print(f"Token取得リクエストエラー: {e}")
+        return None
 
     if response.status_code != 200:
         print(f"Token取得失敗: {response.status_code} - {response.text}")
@@ -32,10 +36,14 @@ def search_artist(name):
 
     headers = {'Authorization': f'Bearer {token}'}
     params = {'q': name, 'type': 'artist', 'limit': 1}
-    response = requests.get('https://api.spotify.com/v1/search', headers=headers, params=params)
 
-    if response.status_code != 200:
-        print(f"検索失敗: {response.status_code} - {response.text}")
+    try:
+        response = requests.get('https://api.spotify.com/v1/search', headers=headers, params=params)
+        if response.status_code != 200:
+            print(f"検索失敗: {response.status_code} - {response.text}")
+            return None
+    except requests.exceptions.RequestException as e:
+        print(f"Spotify検索リクエストエラー: {e}")
         return None
 
     try:

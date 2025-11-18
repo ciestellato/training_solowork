@@ -9,6 +9,14 @@
 {% block content %}
 <h1>🛠 タイムテーブル編集</h1>
 
+{% if messages %}
+  <div class="mb-3">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+{% endif %}
+
 <form method="POST">
     {% csrf_token %}
     <div class="mb-3">

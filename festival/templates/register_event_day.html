@@ -37,7 +37,7 @@
     <button type="submit" class="btn btn-primary">登録する</button>
 </form>
 
-<a href="{% url 'festival:fes_event_list' %}" class="btn btn-secondary mt-3">イベント一覧に戻る</a>
+<a href="{% url 'festival:fes_event_upcoming' %}" class="btn btn-secondary mt-3">イベント一覧に戻る</a>
 
 <script type="text/javascript">
     const eventData = JSON.parse('{{ event_data_json|escapejs }}' || '{}');
