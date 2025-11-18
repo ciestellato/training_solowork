@@ -11,6 +11,17 @@
 
 ## 🧩 構成
 
+### 🛠 技術構成
+
+| 項目	|使用技術|
+|--------------|------|
+| フレームワーク | Django|
+| 言語		    | Python, HTML, CSS, JavaScript|
+| データベース   | SQLite（Django ORM）|
+| 外部API	    | Spotify Web API（Client Credentials Flow）|
+| バージョン管理 | GitHub|
+| 環境管理      | .env + python-dotenv|
+
 ### モデル設計（Django ORM）
 
 | モデル名     | 役割 |
