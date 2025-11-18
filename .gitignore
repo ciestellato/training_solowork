@@ -10,3 +10,7 @@ db.sqlite3
 
 # 環境変数
 .env
+
+# キャッシュファイル
+.cache
+.cache*
