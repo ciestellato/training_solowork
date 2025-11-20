@@ -347,13 +347,14 @@
 
 ```
 [ユーザー]
-   ↓（ログイン）
-[Spotify認証画面]
-   ↓（アクセストークン取得）
+   ↓（Blast!!!にアクセス）
 [Blast!!! プレイリスト作成画面]
    ↓（代表曲取得）
 [Spotify API: Get Artist Top Tracks]
    ↓（選曲表示）
+   ↓（保存ボタン押下時）
+[Spotify認証画面] ※Spotifyログイン
+   ↓（アクセストークン取得）
 [Spotify API: Create Playlist + Add Tracks]
 ```
 
