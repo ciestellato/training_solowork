@@ -5,9 +5,15 @@ from .models import Artist, Event, Performance, EventDay, Stage
 # Register your models here.
 @admin.register(Artist)
 class ArtistAdmin(admin.ModelAdmin):
-    list_display = ('name', 'furigana', 'popularity', 'spotify_id')  # 一覧に表示する項目
-    search_fields = ('name', 'genres')                   # 検索ボックスで検索可能な項目
-    list_filter = ('genres',)                        # サイドバーにフィルターを追加
+    # 一覧に表示する項目
+    list_display = (
+        'name', 'furigana',
+        'image_url', 'twitter_url', 'official_url'
+    )
+    # 検索ボックスで検索可能な項目
+    search_fields = ('name', 'furigana')
+    # サイドバーにフィルターを追加
+    list_filter = ('genres',)
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):

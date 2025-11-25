@@ -1,4 +1,5 @@
 from django.db import models
+from .utils.text_utils import get_initial_group
 
 class Event(models.Model):
     """イベント全体のクラス"""
@@ -29,12 +30,18 @@ class Artist(models.Model):
     spotify_id = models.CharField(max_length=100, unique=True)
     image_url = models.URLField(blank=True, null=True)
     twitter_url = models.URLField(blank=True, null=True)
+    official_url = models.URLField(blank=True, null=True)
 
     def __str__(self):
         return self.name
     
     class Meta:
         ordering = ['furigana']  # ふりがな順で並び替え
+    
+    @property
+    def initial_group(self):
+        """ふりがなまたは名前から頭文字グループを返す"""
+        return get_initial_group(self.furigana or self.name)
 
 class EventDay(models.Model):
     """公演日・会場単位のクラス"""

@@ -13,34 +13,35 @@ def artist_list(request):
     query = request.GET.get('q')
     initial = request.GET.get('initial')
 
+    # 全アーティスト（ふりがなあり）
     all_artists = Artist.objects.exclude(furigana__isnull=True).exclude(furigana__exact='')
 
-    # 頭文字グループ化によるフィルタ
-    if initial:
-        matched_ids = [
-            artist.id for artist in all_artists
-            if get_initial_group(artist.furigana) == initial
-        ]
-        artists = Artist.objects.filter(id__in=matched_ids)
-    else:
-        artists = all_artists
+    artists = all_artists
 
+    # 検索フィルタ
     if query:
         artists = artists.filter(name__icontains=query)
 
     artists = artists.order_by('furigana')
 
-    # 初期グループ一覧生成
-    initials = sorted(set(get_initial_group(a.furigana) for a in all_artists if a.furigana))
+    # 頭文字フィルタ（Python側で最終的に絞り込み）
+    if initial:
+        artists = [a for a in artists if a.initial_group == initial]
+
+    # 初期グループ一覧生成（全件ベース）
     kana_order = ['あ', 'か', 'さ', 'た', 'な', 'は', 'ま', 'や', 'ら', 'わ']
     alpha_order = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
-    sorted_initials = [i for i in kana_order + alpha_order if i in initials]
+    initials = set(a.initial_group for a in all_artists if a.furigana)
+
+    initials_kana = [i for i in kana_order if i in initials]
+    initials_alpha = [i for i in alpha_order if i in initials]
 
     return render(request, 'artist_list.html', {
         'artists': artists,
         'query': query,
         'initial': initial,
-        'initials': sorted_initials,
+        'initials_kana': initials_kana,
+        'initials_alpha': initials_alpha,
     })
 
 def artist_detail(request, pk):
@@ -48,14 +49,17 @@ def artist_detail(request, pk):
     artist = get_object_or_404(Artist, pk=pk)
     today = localdate()
 
-    # 関連する出演情報を取得（イベント情報も含めて）
-    performances = Performance.objects.filter(artist=artist).select_related('event_day__event', 'stage')
+    performances = Performance.objects.filter(artist=artist).select_related(
+        'event_day__event', 'stage'
+    )
 
-    # 今日以降のスケジュール（昇順）
-    upcoming_performances = performances.filter(event_day__date__gte=today).order_by('event_day__date', 'start_time')
+    upcoming_performances = performances.filter(
+        event_day__date__gte=today
+    ).order_by('event_day__date', 'start_time')
 
-    # 昨日以前の出演履歴（降順）
-    past_performances = performances.filter(event_day__date__lt=today).order_by('-event_day__date', '-start_time')
+    past_performances = performances.filter(
+        event_day__date__lt=today
+    ).order_by('-event_day__date', '-start_time')
 
     return render(request, 'artist_detail.html', {
         'artist': artist,
@@ -66,17 +70,17 @@ def artist_detail(request, pk):
 @staff_member_required
 def edit_artist_bulk(request):
     """アーティスト一括編集ビュー"""
-    artists = Artist.objects.all()
-    for artist in artists:
-        artist.initial_group = get_initial_group(artist.furigana or artist.name)
-    artists = sorted(artists, key=lambda a: a.initial_group)
+    artists = list(Artist.objects.all())
+    artists.sort(key=lambda a: a.initial_group)
 
     form = ArtistBulkEditForm(request.POST or None, artists=artists)
     if request.method == 'POST' and form.is_valid():
+        updated = []
         for artist in artists:
             artist.name = form.cleaned_data.get(f'name_{artist.id}', artist.name)
             artist.furigana = form.cleaned_data.get(f'furigana_{artist.id}', artist.furigana)
-            artist.save()
+            updated.append(artist)
+        Artist.objects.bulk_update(updated, ['name', 'furigana'])
         return redirect('festival:artist_list')
 
     return render(request, 'artist_bulk_edit.html', {

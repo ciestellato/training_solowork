@@ -7,7 +7,10 @@ from ..forms import EventForm
 def event_list_upcoming(request):
     """今後のフェスイベント一覧"""
     today = date.today()
-    events = Event.objects.filter(end_date__gte=today).order_by('start_date')
+    events = Event.objects.filter(
+        end_date__gte=today,
+        event_type='FES'
+    ).order_by('start_date')
     return render(request, 'event_list_upcoming.html', {
         'events': events,
         'mode': 'upcoming',
@@ -16,7 +19,10 @@ def event_list_upcoming(request):
 def event_list_history(request):
     """過去のフェスイベント一覧"""
     today = date.today()
-    events = Event.objects.filter(end_date__lt=today).order_by('-start_date')
+    events = Event.objects.filter(
+        end_date__lt=today,
+        event_type='FES'
+    ).order_by('-start_date')
     return render(request, 'event_list_history.html', {
         'events': events,
         'mode': 'history',

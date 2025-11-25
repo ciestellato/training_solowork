@@ -36,7 +36,7 @@ urlpatterns = [
     # イベント関係
     path('events/upcoming/', event_list_upcoming, name='fes_event_upcoming'),
     path('events/history/', event_list_history, name='fes_event_history'),
-    path('events/fes/', fes_event_list, name='fes_event_list'),
+    path('events/fes/', event_list_upcoming, name='fes_event_list'),
     path('events/other/', other_event_list, name='other_event_list'),
     path('event/<int:pk>/', event_detail, name='event_detail'),
     path('events/create/', create_event, name='create_event'),
