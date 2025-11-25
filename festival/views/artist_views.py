@@ -7,6 +7,7 @@ from ..models import Artist, Performance, EventDay
 from ..forms import ArtistForm, ArtistBulkEditForm, BulkArtistForm
 from ..utils.spotify_utils import save_artist_from_spotify
 from ..utils.text_utils import get_initial_group
+from ..utils.artist_utils import update_missing_artist_images
 
 def artist_list(request):
     """アーティスト一覧ページ（検索・頭文字絞り込み付き）"""
@@ -127,3 +128,9 @@ def edit_artist(request, artist_id):
         'artist': artist,
         'mode': 'edit'
     })
+
+@staff_member_required
+def update_artist_images_view(request):
+    """Spotifyから画像を取得して空のアーティストに登録"""
+    update_missing_artist_images()
+    return redirect('festival:artist_list')

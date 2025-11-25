@@ -3,7 +3,7 @@ from .views.base_views import index, error_page
 from .views.artist_views import (
     artist_list, artist_detail,
     bulk_artist_register, edit_artist,
-    edit_artist_bulk
+    edit_artist_bulk, update_artist_images_view
 )
 from .views.event_views import (
     fes_event_list, other_event_list,
@@ -32,6 +32,7 @@ urlpatterns = [
     path('artists/bulk/', bulk_artist_register, name='bulk_artist_register'),
     path('artist/edit/<int:artist_id>/', edit_artist, name='edit_artist'),
     path('artist/bulk_edit/', edit_artist_bulk, name='edit_artist_bulk'),
+    path('artist/image/', update_artist_images_view, name='update_artist_images_view'),
 
     # イベント関係
     path('events/upcoming/', event_list_upcoming, name='fes_event_upcoming'),

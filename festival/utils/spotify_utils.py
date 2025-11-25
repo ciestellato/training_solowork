@@ -203,3 +203,29 @@ def save_playlist_to_spotify(user_token, track_uris, playlist_name="フェス予
 
     # 4. プレイリストURLを返す
     return create_res.json().get("external_urls", {}).get("spotify")
+
+def fetch_artist_image(spotify_id):
+    """Spotify APIからアーティスト画像URLを取得（最小サイズを選択）"""
+    token = get_app_token()
+    if not token:
+        return None
+
+    headers = {'Authorization': f'Bearer {token}'}
+    url = f'https://api.spotify.com/v1/artists/{spotify_id}'
+
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        images = data.get('images', [])
+        if not images:
+            return None
+        # Spotifyは大きい順に並んでいるので最後の要素が最小サイズ
+        smallest_image = images[-1]
+        return smallest_image.get('url')
+    except requests.exceptions.RequestException as e:
+        print(f"Spotify API接続エラー: {e}")
+        return None
+    except ValueError:
+        print("レスポンスがJSON形式ではありません")
+        return None

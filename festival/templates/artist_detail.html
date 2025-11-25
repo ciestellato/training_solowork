@@ -11,6 +11,13 @@
 <h1>{{ artist.name }}の詳細</h1>
 <p>ふりがな：{{ artist.furigana }}</p>
 
+<!-- 画像表示 -->
+{% if artist.image_url %}
+    <div class="mb-3">
+        <img src="{{ artist.image_url }}" alt="{{ artist.name }}の画像" class="img-fluid rounded">
+    </div>
+{% endif %}
+
 {% if upcoming_performances %}
     <h2 class="mt-4">🎤 今後の出演予定</h2>
     <ul class="list-group mb-4">
@@ -46,6 +53,13 @@
     </a><br>
     <a href="{% url 'festival:edit_artist' artist.id %}" class="btn btn-sm btn-outline-primary">編集</a><br>
 {% endif %}
+
+<!-- 音楽ナタリーへのリンク -->
+<p>
+    <a href="https://natalie.mu/search?query={{ artist.name|urlencode }}&g=music" target="_blank" class="btn btn-outline-secondary">
+        音楽ナタリーで{{ artist.name }}を検索
+    </a>
+</p>
 
 <a href="{% url 'festival:artist_list' %}" class="btn btn-primary mt-3">一覧に戻る</a>
 {% endblock %}
