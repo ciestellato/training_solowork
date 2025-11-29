@@ -14,3 +14,7 @@ db.sqlite3
 # キャッシュファイル
 .cache
 .cache*
+
+# 無関係なファイル
+.vscode
+.vscode/

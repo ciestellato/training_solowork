@@ -21,6 +21,28 @@ class Event(models.Model):
     def __str__(self):
         return self.name
 
+class EventDay(models.Model):
+    """公演日・会場単位のクラス"""
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    date = models.DateField()
+    venue = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"{self.event.name} - {self.date} @ {self.venue}"
+    
+    class Meta:
+        unique_together = ('event', 'date', 'venue')
+
+class Tag(models.Model):
+    """タグのクラス
+    後日実装予定：中間テーブル「Tagging」誰がタグを付けたかログを残す機能
+    """
+    name = models.CharField(max_length=100, unique=True)  # #CDJ2526_Day1 など
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
 class Artist(models.Model):
     """アーティストクラス"""
     name = models.CharField(max_length=255)
@@ -31,6 +53,7 @@ class Artist(models.Model):
     image_url = models.URLField(blank=True, null=True)
     twitter_url = models.URLField(blank=True, null=True)
     official_url = models.URLField(blank=True, null=True)
+    tags = models.ManyToManyField(Tag, blank=True, related_name='artists')
 
     def __str__(self):
         return self.name
@@ -43,17 +66,12 @@ class Artist(models.Model):
         """ふりがなまたは名前から頭文字グループを返す"""
         return get_initial_group(self.furigana or self.name)
 
-class EventDay(models.Model):
-    """公演日・会場単位のクラス"""
-    event = models.ForeignKey(Event, on_delete=models.CASCADE)
-    date = models.DateField()
-    venue = models.CharField(max_length=255)
 
-    def __str__(self):
-        return f"{self.event.name} - {self.date} @ {self.venue}"
-    
-    class Meta:
-        unique_together = ('event', 'date', 'venue')
+
+
+
+
+# 以下は、廃止したタイムテーブル機能に関するもの =================================================
 
 class Stage(models.Model):
     """イベント内のステージ情報"""
